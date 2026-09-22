@@ -81,3 +81,32 @@ export const fetchCategories = async (): Promise<Category[]> => {
     return [];
   }
 };
+export type ProductVariant = {
+    _id: string;
+    productId: string;
+    companyId: string;
+    sku: string;
+    attributes: Record<string, string>;
+    price: number;
+    stock: number;
+    isActive: boolean;
+  };
+  
+  export type ProductDetailResponse = {
+    ok: boolean;
+    product: Product;
+    variants: ProductVariant[];
+  };
+  
+  export const fetchProductById = async (
+    productId: string
+  ): Promise<ProductDetailResponse | null> => {
+    try {
+      const res = await fetch(`${API_BASE}/catalog/products/${productId}`);
+      if (!res.ok) return null;
+      return res.json();
+    } catch (error) {
+      console.error('fetchProductById error:', error);
+      return null;
+    }
+  };

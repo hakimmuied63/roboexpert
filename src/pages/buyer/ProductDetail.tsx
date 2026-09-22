@@ -1,20 +1,24 @@
 import { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { Star, Shield, Truck, Heart, Share2, Info, ChevronRight, ShoppingCart } from 'lucide-react';
-import { productService, reviewService } from '../../mocks/services';
-import type { Product, Review } from '../../types';
-import { Button, Badge, LoadingSpinner, StarRating } from '../../components/ui';
+import { Shield, Truck, Heart, Share2, ChevronRight, ShoppingCart } from 'lucide-react';
+import { Button, Badge, LoadingSpinner } from '../../components/ui';
 import { useCart } from '../../contexts/CartContext';
+import {
+  fetchProductById,
+  type Product,
+  type ProductVariant,
+  type Company,
+} from '../../lib/api';
 import toast from 'react-hot-toast';
 
 export function ProductDetail() {
   const { id } = useParams<{ id: string }>();
   const [product, setProduct] = useState<Product | null>(null);
-  const [reviews, setReviews] = useState<Review[]>([]);
+  const [variants, setVariants] = useState<ProductVariant[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeImage, setActiveImage] = useState(0);
   const [quantity, setQuantity] = useState(1);
-  const [activeTab, setActiveTab] = useState<'details' | 'reviews'>('details');
+  const [selectedVariantId, setSelectedVariantId] = useState<string | null>(null);
 
   const { addItem } = useCart();
 
@@ -22,12 +26,16 @@ export function ProductDetail() {
     async function load() {
       if (!id) return;
       setLoading(true);
-      const [p, r] = await Promise.all([
-        productService.getById(id),
-        reviewService.getByProduct(id),
-      ]);
-      setProduct(p || null);
-      setReviews(r);
+      const data = await fetchProductById(id);
+      if (data && data.ok) {
+        setProduct(data.product);
+        setVariants(data.variants);
+        if (data.variants.length > 0) {
+          setSelectedVariantId(data.variants[0]._id);
+        }
+      } else {
+        setProduct(null);
+      }
       setLoading(false);
     }
     load();
@@ -46,20 +54,44 @@ export function ProductDetail() {
     );
   }
 
+  const selectedVariant = variants.find((v) => v._id === selectedVariantId) ?? null;
+  const displayPrice = selectedVariant?.price ?? product.basePrice;
+  const availableStock = selectedVariant?.stock ?? 0;
+  const canBuy = availableStock > 0;
+
   const handleAddToCart = () => {
-    addItem(product, quantity);
-    toast.success('Added to cart');
+    if (!selectedVariant) {
+      toast.error('Please select a variant');
+      return;
+    }
+    if (!canBuy) {
+      toast.error('Out of stock');
+      return;
+    }
+    // Note: cart currently expects a mock-shape product. We'll update this in a later step.
+    // For now, this is a placeholder that shows a toast.
+    toast.success(`Added ${quantity} × ${product.name}`);
+    // addItem(...) — will wire once cart is updated
   };
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-8 space-y-8">
       {/* Breadcrumb */}
-      <nav className="flex text-sm text-surface-500">
+      <nav className="flex text-sm text-surface-500 flex-wrap">
         <Link to="/" className="hover:text-primary-600">Home</Link>
         <ChevronRight className="w-4 h-4 mx-2" />
-        <Link to={`/category/${product.category.toLowerCase()}`} className="hover:text-primary-600">{product.category}</Link>
-        <ChevronRight className="w-4 h-4 mx-2" />
-        <span className="text-surface-900 truncate max-w-xs">{product.title}</span>
+        {product.company && (
+          <>
+            <Link
+              to={`/shop/${product.company._id}`}
+              className="hover:text-primary-600"
+            >
+              {product.company.name}
+            </Link>
+            <ChevronRight className="w-4 h-4 mx-2" />
+          </>
+        )}
+        <span className="text-surface-900 truncate max-w-xs">{product.name}</span>
       </nav>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
@@ -67,9 +99,12 @@ export function ProductDetail() {
         <div className="space-y-4">
           <div className="aspect-square bg-surface-100 rounded-2xl overflow-hidden border border-surface-200">
             <img
-              src={product.images[activeImage]}
-              alt={product.title}
+              src={product.images[activeImage] ?? 'https://via.placeholder.com/600'}
+              alt={product.name}
               className="w-full h-full object-cover"
+              onError={(e) => {
+                (e.target as HTMLImageElement).src = 'https://via.placeholder.com/600?text=No+Image';
+              }}
             />
           </div>
           {product.images.length > 1 && (
@@ -79,7 +114,9 @@ export function ProductDetail() {
                   key={idx}
                   onClick={() => setActiveImage(idx)}
                   className={`aspect-square rounded-xl overflow-hidden border-2 transition-all ${
-                    activeImage === idx ? 'border-primary-600 ring-2 ring-primary-100' : 'border-transparent hover:border-surface-300'
+                    activeImage === idx
+                      ? 'border-primary-600 ring-2 ring-primary-100'
+                      : 'border-transparent hover:border-surface-300'
                   }`}
                 >
                   <img src={img} alt={`Thumbnail ${idx + 1}`} className="w-full h-full object-cover" />
@@ -92,56 +129,83 @@ export function ProductDetail() {
         {/* Info */}
         <div className="space-y-6">
           <div>
-            <div className="flex items-center gap-2 mb-2">
-              <Link to={`/seller-profile/${product.sellerId}`} className="text-sm font-medium text-primary-600 hover:underline">
-                {product.sellerName}
-              </Link>
-              <Badge variant="success" dot className="bg-success-50 text-success-700">Verified Seller</Badge>
-            </div>
-            <h1 className="text-3xl font-bold text-surface-900 mb-4">{product.title}</h1>
-            <div className="flex items-center gap-4">
-              <div className="flex items-center gap-1">
-                <StarRating rating={product.rating} />
-                <span className="text-sm font-medium text-surface-900 ml-1">{product.rating.toFixed(1)}</span>
-                <span className="text-sm text-surface-500 underline cursor-pointer" onClick={() => setActiveTab('reviews')}>
-                  ({product.reviewCount} reviews)
-                </span>
+            {product.company && (
+              <div className="flex items-center gap-2 mb-2">
+                <Link
+                  to={`/shop/${product.company._id}`}
+                  className="text-sm font-medium text-primary-600 hover:underline"
+                >
+                  {product.company.name}
+                </Link>
+                <Badge variant="success" dot className="bg-success-50 text-success-700">
+                  Verified Seller
+                </Badge>
               </div>
-              <span className="text-surface-300">|</span>
-              <span className="text-sm text-surface-500">{product.stock > 0 ? 'In Stock' : 'Out of Stock'}</span>
-            </div>
+            )}
+            <h1 className="text-3xl font-bold text-surface-900 mb-4">{product.name}</h1>
+            <p className="text-sm text-surface-500">
+              {availableStock > 0 ? `In Stock (${availableStock})` : 'Out of Stock'}
+            </p>
           </div>
 
           <div className="py-6 border-y border-surface-200">
             <div className="flex items-end gap-3 mb-2">
               <span className="text-4xl font-bold text-surface-900">
-                ₹{product.price.toLocaleString('en-IN')}
+                ₹{displayPrice.toLocaleString('en-IN')}
               </span>
-              {product.compareAtPrice && (
-                <span className="text-lg text-surface-400 line-through mb-1">
-                  ₹{product.compareAtPrice.toLocaleString('en-IN')}
-                </span>
-              )}
             </div>
             <p className="text-sm text-surface-500">Inclusive of all taxes</p>
           </div>
+
+          {/* Variant selector */}
+          {variants.length > 0 && (
+            <div className="space-y-3">
+              <p className="text-sm font-semibold text-surface-900">Select variant</p>
+              <div className="flex flex-wrap gap-2">
+                {variants.map((v) => {
+                  const isSelected = v._id === selectedVariantId;
+                  const outOfStock = v.stock <= 0;
+                  return (
+                    <button
+                      key={v._id}
+                      type="button"
+                      onClick={() => setSelectedVariantId(v._id)}
+                      disabled={outOfStock}
+                      className={`px-4 py-2 text-sm rounded-lg border transition-colors ${
+                        isSelected
+                          ? 'bg-primary-600 text-white border-primary-600'
+                          : outOfStock
+                          ? 'bg-surface-100 text-surface-400 border-surface-200 cursor-not-allowed'
+                          : 'bg-white text-surface-700 border-surface-300 hover:border-primary-500'
+                      }`}
+                    >
+                      {Object.entries(v.attributes)
+                        .map(([key, value]) => `${value}`)
+                        .join(' / ')}
+                      {outOfStock && ' (out)'}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
 
           {/* Actions */}
           <div className="space-y-4">
             <div className="flex items-center gap-4">
               <div className="flex items-center border border-surface-300 rounded-lg">
                 <button
-                  className="px-4 py-3 text-surface-600 hover:bg-surface-50 rounded-l-lg transition-colors"
+                  className="px-4 py-3 text-surface-600 hover:bg-surface-50 rounded-l-lg transition-colors disabled:opacity-50"
                   onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                  disabled={quantity <= 1 || product.stock === 0}
+                  disabled={quantity <= 1 || !canBuy}
                 >
-                  -
+                  −
                 </button>
                 <span className="w-12 text-center font-medium text-surface-900">{quantity}</span>
                 <button
-                  className="px-4 py-3 text-surface-600 hover:bg-surface-50 rounded-r-lg transition-colors"
-                  onClick={() => setQuantity(Math.min(product.stock, quantity + 1))}
-                  disabled={quantity >= product.stock || product.stock === 0}
+                  className="px-4 py-3 text-surface-600 hover:bg-surface-50 rounded-r-lg transition-colors disabled:opacity-50"
+                  onClick={() => setQuantity(Math.min(availableStock, quantity + 1))}
+                  disabled={quantity >= availableStock || !canBuy}
                 >
                   +
                 </button>
@@ -151,9 +215,9 @@ export function ProductDetail() {
                 className="flex-1 text-base shadow-lg shadow-primary-500/20"
                 icon={<ShoppingCart className="w-5 h-5" />}
                 onClick={handleAddToCart}
-                disabled={product.stock === 0}
+                disabled={!canBuy}
               >
-                {product.stock > 0 ? 'Add to Cart' : 'Out of Stock'}
+                {canBuy ? 'Add to Cart' : 'Out of Stock'}
               </Button>
             </div>
             <div className="flex items-center gap-4">
@@ -166,7 +230,7 @@ export function ProductDetail() {
             </div>
           </div>
 
-          {/* Trust Guarantees */}
+          {/* Trust */}
           <div className="grid grid-cols-2 gap-4 pt-6">
             <div className="flex items-start gap-3">
               <div className="p-2 bg-surface-100 rounded-lg text-surface-600">
@@ -190,121 +254,16 @@ export function ProductDetail() {
         </div>
       </div>
 
-      {/* Tabs */}
-      <div className="mt-16">
-        <div className="flex items-center gap-8 border-b border-surface-200">
-          <button
-            className={`pb-4 text-base font-medium transition-colors border-b-2 ${
-              activeTab === 'details' ? 'border-primary-600 text-primary-600' : 'border-transparent text-surface-500 hover:text-surface-700'
-            }`}
-            onClick={() => setActiveTab('details')}
-          >
-            Product Details
-          </button>
-          <button
-            className={`pb-4 text-base font-medium transition-colors border-b-2 ${
-              activeTab === 'reviews' ? 'border-primary-600 text-primary-600' : 'border-transparent text-surface-500 hover:text-surface-700'
-            }`}
-            onClick={() => setActiveTab('reviews')}
-          >
-            Reviews ({product.reviewCount})
-          </button>
-        </div>
-
-        <div className="py-8">
-          {activeTab === 'details' && (
-            <div className="max-w-3xl space-y-6">
-              <div>
-                <h3 className="text-lg font-semibold text-surface-900 mb-4">Description</h3>
-                <p className="text-surface-600 leading-relaxed whitespace-pre-line">
-                  {product.description}
-                </p>
-              </div>
-              <div>
-                <h3 className="text-lg font-semibold text-surface-900 mb-4">Specifications</h3>
-                <div className="bg-surface-50 rounded-xl border border-surface-200 p-4">
-                  <dl className="space-y-3">
-                    <div className="grid grid-cols-3 gap-4">
-                      <dt className="text-sm font-medium text-surface-500">Category</dt>
-                      <dd className="col-span-2 text-sm text-surface-900">{product.category}</dd>
-                    </div>
-                    <div className="grid grid-cols-3 gap-4">
-                      <dt className="text-sm font-medium text-surface-500">Seller</dt>
-                      <dd className="col-span-2 text-sm text-surface-900">{product.sellerName}</dd>
-                    </div>
-                    <div className="grid grid-cols-3 gap-4">
-                      <dt className="text-sm font-medium text-surface-500">Listed On</dt>
-                      <dd className="col-span-2 text-sm text-surface-900">
-                        {new Date(product.createdAt).toLocaleDateString()}
-                      </dd>
-                    </div>
-                    <div className="grid grid-cols-3 gap-4">
-                      <dt className="text-sm font-medium text-surface-500">Tags</dt>
-                      <dd className="col-span-2 text-sm text-surface-900 flex flex-wrap gap-2">
-                        {product.tags.map(tag => (
-                          <span key={tag} className="px-2 py-1 bg-white border border-surface-200 rounded-md text-xs">
-                            {tag}
-                          </span>
-                        ))}
-                      </dd>
-                    </div>
-                  </dl>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {activeTab === 'reviews' && (
-            <div className="max-w-3xl space-y-8">
-              {/* Review Summary */}
-              <div className="flex items-center gap-8 bg-surface-50 rounded-xl border border-surface-200 p-6">
-                <div className="text-center">
-                  <p className="text-5xl font-bold text-surface-900">{product.rating.toFixed(1)}</p>
-                  <div className="my-2"><StarRating rating={product.rating} /></div>
-                  <p className="text-sm text-surface-500">Based on {product.reviewCount} reviews</p>
-                </div>
-                <div className="flex-1 border-l border-surface-200 pl-8">
-                  {/* Mock progress bars */}
-                  {[5, 4, 3, 2, 1].map(r => (
-                    <div key={r} className="flex items-center gap-3 mb-2">
-                      <span className="text-sm font-medium text-surface-600 w-3">{r}</span>
-                      <Star className="w-4 h-4 text-warning-500 fill-warning-500" />
-                      <div className="flex-1 h-2 bg-surface-200 rounded-full overflow-hidden">
-                        <div className="h-full bg-warning-500 rounded-full" style={{ width: `${Math.random() * 80 + 10}%` }} />
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* Review List */}
-              <div className="space-y-6">
-                {reviews.length === 0 ? (
-                  <p className="text-surface-500">No reviews yet for this product.</p>
-                ) : (
-                  reviews.map(review => (
-                    <div key={review.id} className="border-b border-surface-200 pb-6">
-                      <div className="flex items-start justify-between mb-3">
-                        <div className="flex items-center gap-3">
-                          <img src={review.userAvatar} alt="" className="w-10 h-10 rounded-full bg-surface-200" />
-                          <div>
-                            <p className="font-medium text-surface-900">{review.userName}</p>
-                            <p className="text-xs text-surface-500">
-                              {new Date(review.createdAt).toLocaleDateString()}
-                            </p>
-                          </div>
-                        </div>
-                        <StarRating rating={review.rating} size="sm" />
-                      </div>
-                      <h4 className="font-semibold text-surface-900 mb-1">{review.title}</h4>
-                      <p className="text-surface-600 text-sm">{review.comment}</p>
-                    </div>
-                  ))
-                )}
-              </div>
-            </div>
-          )}
-        </div>
+      {/* Description */}
+      <div className="mt-16 max-w-3xl">
+        <h2 className="text-lg font-semibold text-surface-900 mb-4">Product Details</h2>
+        {product.description ? (
+          <p className="text-surface-600 leading-relaxed whitespace-pre-line">
+            {product.description}
+          </p>
+        ) : (
+          <p className="text-surface-500">No description provided.</p>
+        )}
       </div>
     </div>
   );
