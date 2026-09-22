@@ -11,20 +11,22 @@ export type Company = {
 };
 
 export type Product = {
-  _id: string;
-  companyId: string;
-  name: string;
-  slug: string;
-  description?: string;
-  basePrice: number;
-  images: string[];
-  isActive: boolean;
-  company?: {
     _id: string;
+    companyId: string;
     name: string;
     slug: string;
-  } | null;
-};
+    description?: string;
+    basePrice: number;
+    images: string[];
+    isActive: boolean;
+    createdAt: string;
+    updatedAt: string;
+    company?: {
+      _id: string;
+      name: string;
+      slug: string;
+    } | null;
+  };
 
 export type Category = {
   _id: string;

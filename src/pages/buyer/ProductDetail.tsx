@@ -7,7 +7,6 @@ import {
   fetchProductById,
   type Product,
   type ProductVariant,
-  type Company,
 } from '../../lib/api';
 import toast from 'react-hot-toast';
 
@@ -68,10 +67,8 @@ export function ProductDetail() {
       toast.error('Out of stock');
       return;
     }
-    // Note: cart currently expects a mock-shape product. We'll update this in a later step.
-    // For now, this is a placeholder that shows a toast.
+    addItem(product, selectedVariant, product.company?.name ?? 'Unknown seller', quantity);
     toast.success(`Added ${quantity} × ${product.name}`);
-    // addItem(...) — will wire once cart is updated
   };
 
   return (
@@ -179,9 +176,7 @@ export function ProductDetail() {
                           : 'bg-white text-surface-700 border-surface-300 hover:border-primary-500'
                       }`}
                     >
-                      {Object.entries(v.attributes)
-                        .map(([key, value]) => `${value}`)
-                        .join(' / ')}
+                     {Object.values(v.attributes).join(' / ')}
                       {outOfStock && ' (out)'}
                     </button>
                   );

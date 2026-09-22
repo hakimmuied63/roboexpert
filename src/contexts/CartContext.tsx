@@ -1,5 +1,21 @@
 import React, { createContext, useContext, useReducer, useEffect } from 'react';
-import type { CartItem, Product } from '../types';
+import type { Product, ProductVariant } from '../lib/api';
+
+// ---------- Cart item shape ----------
+
+export interface CartItem {
+  productId: string;
+  companyId: string;
+  companyName: string;
+  productName: string;
+  productSlug: string;
+  image?: string;
+  variantId: string;
+  variantAttributes: Record<string, string>;
+  sku: string;
+  price: number;
+  quantity: number;
+}
 
 interface CartState {
   items: CartItem[];
@@ -8,18 +24,31 @@ interface CartState {
 }
 
 type CartAction =
-  | { type: 'ADD_ITEM'; payload: { product: Product; quantity: number } }
-  | { type: 'REMOVE_ITEM'; payload: string }
-  | { type: 'UPDATE_QUANTITY'; payload: { productId: string; quantity: number } }
+  | {
+      type: 'ADD_ITEM';
+      payload: {
+        product: Product;
+        variant: ProductVariant;
+        companyName: string;
+        quantity: number;
+      };
+    }
+  | { type: 'REMOVE_ITEM'; payload: string } // variantId
+  | { type: 'UPDATE_QUANTITY'; payload: { variantId: string; quantity: number } }
   | { type: 'CLEAR_CART' }
   | { type: 'LOAD_CART'; payload: CartItem[] };
 
 interface CartContextType extends CartState {
-  addItem: (product: Product, quantity?: number) => void;
-  removeItem: (productId: string) => void;
-  updateQuantity: (productId: string, quantity: number) => void;
+  addItem: (
+    product: Product,
+    variant: ProductVariant,
+    companyName: string,
+    quantity?: number
+  ) => void;
+  removeItem: (variantId: string) => void;
+  updateQuantity: (variantId: string, quantity: number) => void;
   clearCart: () => void;
-  getItemQuantity: (productId: string) => number;
+  getItemQuantity: (variantId: string) => number;
 }
 
 const CartContext = createContext<CartContextType | undefined>(undefined);
@@ -27,7 +56,7 @@ const CartContext = createContext<CartContextType | undefined>(undefined);
 function calcTotals(items: CartItem[]) {
   return {
     totalItems: items.reduce((sum, item) => sum + item.quantity, 0),
-    totalPrice: items.reduce((sum, item) => sum + item.product.price * item.quantity, 0),
+    totalPrice: items.reduce((sum, item) => sum + item.price * item.quantity, 0),
   };
 }
 
@@ -36,27 +65,42 @@ function cartReducer(state: CartState, action: CartAction): CartState {
 
   switch (action.type) {
     case 'ADD_ITEM': {
-      const existing = state.items.find(i => i.product.id === action.payload.product.id);
+      const { product, variant, companyName, quantity } = action.payload;
+      const existing = state.items.find((i) => i.variantId === variant._id);
+
       if (existing) {
-        newItems = state.items.map(i =>
-          i.product.id === action.payload.product.id
-            ? { ...i, quantity: i.quantity + action.payload.quantity }
+        newItems = state.items.map((i) =>
+          i.variantId === variant._id
+            ? { ...i, quantity: i.quantity + quantity }
             : i
         );
       } else {
-        newItems = [...state.items, { product: action.payload.product, quantity: action.payload.quantity }];
+        const newItem: CartItem = {
+          productId: product._id,
+          companyId: product.companyId,
+          companyName,
+          productName: product.name,
+          productSlug: product.slug,
+          image: product.images[0],
+          variantId: variant._id,
+          variantAttributes: variant.attributes,
+          sku: variant.sku,
+          price: variant.price,
+          quantity,
+        };
+        newItems = [...state.items, newItem];
       }
       return { items: newItems, ...calcTotals(newItems) };
     }
     case 'REMOVE_ITEM':
-      newItems = state.items.filter(i => i.product.id !== action.payload);
+      newItems = state.items.filter((i) => i.variantId !== action.payload);
       return { items: newItems, ...calcTotals(newItems) };
     case 'UPDATE_QUANTITY':
       if (action.payload.quantity <= 0) {
-        newItems = state.items.filter(i => i.product.id !== action.payload.productId);
+        newItems = state.items.filter((i) => i.variantId !== action.payload.variantId);
       } else {
-        newItems = state.items.map(i =>
-          i.product.id === action.payload.productId
+        newItems = state.items.map((i) =>
+          i.variantId === action.payload.variantId
             ? { ...i, quantity: action.payload.quantity }
             : i
         );
@@ -78,10 +122,9 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     totalPrice: 0,
   });
 
-  // Hydrate from localStorage
   useEffect(() => {
     try {
-      const stored = localStorage.getItem('robofy_cart');
+      const stored = localStorage.getItem('roboexpert_cart_v2');
       if (stored) {
         dispatch({ type: 'LOAD_CART', payload: JSON.parse(stored) });
       }
@@ -90,34 +133,45 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
-  // Persist to localStorage
   useEffect(() => {
-    localStorage.setItem('robofy_cart', JSON.stringify(state.items));
+    localStorage.setItem('roboexpert_cart_v2', JSON.stringify(state.items));
   }, [state.items]);
 
-  const addItem = (product: Product, quantity = 1) => {
-    dispatch({ type: 'ADD_ITEM', payload: { product, quantity } });
+  const addItem = (
+    product: Product,
+    variant: ProductVariant,
+    companyName: string,
+    quantity = 1
+  ) => {
+    dispatch({ type: 'ADD_ITEM', payload: { product, variant, companyName, quantity } });
   };
 
-  const removeItem = (productId: string) => {
-    dispatch({ type: 'REMOVE_ITEM', payload: productId });
+  const removeItem = (variantId: string) => {
+    dispatch({ type: 'REMOVE_ITEM', payload: variantId });
   };
 
-  const updateQuantity = (productId: string, quantity: number) => {
-    dispatch({ type: 'UPDATE_QUANTITY', payload: { productId, quantity } });
+  const updateQuantity = (variantId: string, quantity: number) => {
+    dispatch({ type: 'UPDATE_QUANTITY', payload: { variantId, quantity } });
   };
 
   const clearCart = () => {
     dispatch({ type: 'CLEAR_CART' });
   };
 
-  const getItemQuantity = (productId: string) => {
-    return state.items.find(i => i.product.id === productId)?.quantity || 0;
+  const getItemQuantity = (variantId: string) => {
+    return state.items.find((i) => i.variantId === variantId)?.quantity || 0;
   };
 
   return (
     <CartContext.Provider
-      value={{ ...state, addItem, removeItem, updateQuantity, clearCart, getItemQuantity }}
+      value={{
+        ...state,
+        addItem,
+        removeItem,
+        updateQuantity,
+        clearCart,
+        getItemQuantity,
+      }}
     >
       {children}
     </CartContext.Provider>

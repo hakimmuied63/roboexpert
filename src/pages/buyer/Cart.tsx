@@ -34,9 +34,8 @@ export function Cart() {
     );
   }
 
-  // Calculate totals
   const subtotal = totalPrice;
-  const shipping = subtotal > 999 ? 0 : 99; // Free shipping above 999
+  const shipping = subtotal > 999 ? 0 : 99;
   const total = subtotal + shipping;
 
   return (
@@ -55,28 +54,41 @@ export function Cart() {
             </div>
 
             <ul className="divide-y divide-surface-200">
-              {items.map(({ product, quantity }) => (
-                <li key={product.id} className="p-4 sm:p-6">
+              {items.map((item) => (
+                <li key={item.variantId} className="p-4 sm:p-6">
                   <div className="grid grid-cols-1 sm:grid-cols-12 gap-4 items-center">
                     {/* Product Info */}
                     <div className="col-span-1 sm:col-span-6 flex gap-4">
-                      <Link to={`/product/${product.id}`} className="flex-shrink-0">
+                      <Link to={`/product/${item.productId}`} className="flex-shrink-0">
                         <img
-                          src={product.images[0]}
-                          alt={product.title}
+                          src={item.image ?? 'https://via.placeholder.com/96'}
+                          alt={item.productName}
                           className="w-20 h-20 sm:w-24 sm:h-24 rounded-xl object-cover border border-surface-200"
+                          onError={(e) => {
+                            (e.target as HTMLImageElement).src =
+                              'https://via.placeholder.com/96?text=No+Image';
+                          }}
                         />
                       </Link>
                       <div className="flex flex-col justify-center min-w-0">
                         <Link
-                          to={`/product/${product.id}`}
+                          to={`/product/${item.productId}`}
                           className="text-sm sm:text-base font-semibold text-surface-900 hover:text-primary-600 transition-colors line-clamp-2"
                         >
-                          {product.title}
+                          {item.productName}
                         </Link>
-                        <p className="text-xs text-surface-500 mt-1">Sold by {product.sellerName}</p>
+                        {Object.keys(item.variantAttributes).length > 0 && (
+                          <p className="text-xs text-surface-500 mt-1">
+                            {Object.entries(item.variantAttributes)
+                              .map(([k, v]) => `${k}: ${v}`)
+                              .join(' • ')}
+                          </p>
+                        )}
+                        <p className="text-xs text-surface-500 mt-1">
+                          Sold by {item.companyName}
+                        </p>
                         <button
-                          onClick={() => removeItem(product.id)}
+                          onClick={() => removeItem(item.variantId)}
                           className="flex items-center gap-1 text-sm text-danger-600 hover:text-danger-700 mt-2 transition-colors w-fit"
                         >
                           <Trash2 className="w-4 h-4" /> Remove
@@ -87,7 +99,7 @@ export function Cart() {
                     {/* Price (Desktop) */}
                     <div className="hidden sm:block col-span-2 text-center">
                       <span className="font-medium text-surface-900">
-                        ₹{product.price.toLocaleString('en-IN')}
+                        ₹{item.price.toLocaleString('en-IN')}
                       </span>
                     </div>
 
@@ -96,17 +108,16 @@ export function Cart() {
                       <div className="flex items-center border border-surface-300 rounded-lg">
                         <button
                           className="px-3 py-1.5 text-surface-600 hover:bg-surface-50 rounded-l-lg transition-colors"
-                          onClick={() => updateQuantity(product.id, quantity - 1)}
+                          onClick={() => updateQuantity(item.variantId, item.quantity - 1)}
                         >
-                          -
+                          −
                         </button>
                         <span className="w-8 text-center text-sm font-medium text-surface-900">
-                          {quantity}
+                          {item.quantity}
                         </span>
                         <button
                           className="px-3 py-1.5 text-surface-600 hover:bg-surface-50 rounded-r-lg transition-colors"
-                          onClick={() => updateQuantity(product.id, quantity + 1)}
-                          disabled={quantity >= product.stock}
+                          onClick={() => updateQuantity(item.variantId, item.quantity + 1)}
                         >
                           +
                         </button>
@@ -114,14 +125,14 @@ export function Cart() {
 
                       {/* Mobile Total */}
                       <span className="sm:hidden font-bold text-surface-900">
-                        ₹{(product.price * quantity).toLocaleString('en-IN')}
+                        ₹{(item.price * item.quantity).toLocaleString('en-IN')}
                       </span>
                     </div>
 
                     {/* Total (Desktop) */}
                     <div className="hidden sm:block col-span-2 text-right">
                       <span className="font-bold text-surface-900">
-                        ₹{(product.price * quantity).toLocaleString('en-IN')}
+                        ₹{(item.price * item.quantity).toLocaleString('en-IN')}
                       </span>
                     </div>
                   </div>
@@ -139,12 +150,18 @@ export function Cart() {
             <div className="space-y-4 text-sm mb-6">
               <div className="flex justify-between text-surface-600">
                 <span>Subtotal ({totalItems} items)</span>
-                <span className="font-medium text-surface-900">₹{subtotal.toLocaleString('en-IN')}</span>
+                <span className="font-medium text-surface-900">
+                  ₹{subtotal.toLocaleString('en-IN')}
+                </span>
               </div>
               <div className="flex justify-between text-surface-600">
                 <span>Shipping fee</span>
                 <span className="font-medium text-surface-900">
-                  {shipping === 0 ? <span className="text-success-600">Free</span> : `₹${shipping}`}
+                  {shipping === 0 ? (
+                    <span className="text-success-600">Free</span>
+                  ) : (
+                    `₹${shipping}`
+                  )}
                 </span>
               </div>
               {shipping > 0 && (
@@ -157,9 +174,13 @@ export function Cart() {
             <div className="border-t border-surface-200 pt-4 mb-6">
               <div className="flex justify-between">
                 <span className="text-base font-bold text-surface-900">Total</span>
-                <span className="text-xl font-bold text-primary-600">₹{total.toLocaleString('en-IN')}</span>
+                <span className="text-xl font-bold text-primary-600">
+                  ₹{total.toLocaleString('en-IN')}
+                </span>
               </div>
-              <p className="text-xs text-surface-500 text-right mt-1">Inclusive of all taxes</p>
+              <p className="text-xs text-surface-500 text-right mt-1">
+                Inclusive of all taxes
+              </p>
             </div>
 
             <Button size="lg" fullWidth onClick={handleCheckout}>
