@@ -110,3 +110,25 @@ export type ProductVariant = {
       return null;
     }
   };
+  export type CategoryProductsResponse = {
+    ok: boolean;
+    category: {
+      _id: string;
+      name: string;
+      slug: string;
+    };
+    products: Product[];
+  };
+  
+  export const fetchProductsByCategory = async (
+    slug: string
+  ): Promise<CategoryProductsResponse | null> => {
+    try {
+      const res = await fetch(`${API_BASE}/catalog/categories/${slug}/products`);
+      if (!res.ok) return null;
+      return res.json();
+    } catch (error) {
+      console.error('fetchProductsByCategory error:', error);
+      return null;
+    }
+  };
