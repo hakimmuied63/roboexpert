@@ -19,6 +19,20 @@ export type Product = {
   basePrice: number;
   images: string[];
   isActive: boolean;
+  company?: {
+    _id: string;
+    name: string;
+    slug: string;
+  } | null;
+};
+
+export type Category = {
+  _id: string;
+  name: string;
+  slug: string;
+  companyId: string | null;
+  parentId: string | null;
+  isActive: boolean;
 };
 
 export type CatalogResponse = {
@@ -41,5 +55,29 @@ export const fetchCompanyProducts = async (
   } catch (error) {
     console.error('fetchCompanyProducts error:', error);
     return null;
+  }
+};
+
+export const fetchAllProducts = async (): Promise<Product[]> => {
+  try {
+    const res = await fetch(`${API_BASE}/catalog/products`);
+    if (!res.ok) return [];
+    const data = await res.json();
+    return data.products ?? [];
+  } catch (error) {
+    console.error('fetchAllProducts error:', error);
+    return [];
+  }
+};
+
+export const fetchCategories = async (): Promise<Category[]> => {
+  try {
+    const res = await fetch(`${API_BASE}/catalog/categories`);
+    if (!res.ok) return [];
+    const data = await res.json();
+    return data.categories ?? [];
+  } catch (error) {
+    console.error('fetchCategories error:', error);
+    return [];
   }
 };
