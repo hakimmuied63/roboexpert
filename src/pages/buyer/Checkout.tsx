@@ -1,22 +1,20 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useCart } from '../../contexts/CartContext';
-import { useAuth } from '../../contexts/AuthContext';
 import { Button, Input, Select } from '../../components/ui';
-import { orderService } from '../../mocks/services';
+import { placeOrder } from '../../lib/api';
 import toast from 'react-hot-toast';
 import { CheckCircle2, ShieldCheck, MapPin, CreditCard } from 'lucide-react';
-import type { OrderItem } from '../../types';
 
 export function Checkout() {
   const { items, totalPrice, clearCart } = useCart();
-  const { user } = useAuth();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
-  const [step, setStep] = useState<1 | 2>(1); // 1: Shipping, 2: Payment (Mock Razorpay)
-  
+  const [step, setStep] = useState<1 | 2>(1);
+
   const [form, setForm] = useState({
-    fullName: user?.name || '',
+    fullName: '',
+    email: '',
     phone: '',
     line1: '',
     line2: '',
@@ -39,59 +37,73 @@ export function Checkout() {
   const validateShipping = () => {
     const e: Record<string, string> = {};
     if (!form.fullName.trim()) e.fullName = 'Name is required';
+    if (!form.email.trim()) e.email = 'Email is required';
+    else if (!/\S+@\S+\.\S+/.test(form.email)) e.email = 'Invalid email';
     if (!form.phone.trim()) e.phone = 'Phone is required';
     if (!form.line1.trim()) e.line1 = 'Address is required';
     if (!form.city.trim()) e.city = 'City is required';
     if (!form.state.trim()) e.state = 'State is required';
     if (!form.pincode.trim()) e.pincode = 'Pincode is required';
-    
+
     setErrors(e);
     return Object.keys(e).length === 0;
   };
 
   const handleContinueToPayment = (e: React.FormEvent) => {
     e.preventDefault();
-    if (validateShipping()) {
-      setStep(2);
-    }
+    if (validateShipping()) setStep(2);
   };
 
   const handlePlaceOrder = async () => {
-    if (!user) return;
     setLoading(true);
 
     try {
-      // Simulate Razorpay window opening and closing
-      toast('Opening secure payment gateway...', { icon: '🔒' });
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      
-      const orderItems: OrderItem[] = items.map(i => ({
-        productId: i.product.id,
-        productTitle: i.product.title,
-        productImage: i.product.images[0],
-        price: i.product.price,
-        quantity: i.quantity,
-        sellerId: i.product.sellerId,
-        sellerName: i.product.sellerName,
-      }));
+      const payload = {
+        buyer: {
+          name: form.fullName,
+          email: form.email,
+          phone: form.phone,
+        },
+        shippingAddress: {
+          line1: form.line1,
+          line2: form.line2 || undefined,
+          city: form.city,
+          state: form.state,
+          pincode: form.pincode,
+          country: form.country,
+        },
+        items: items.map((i) => ({
+          productId: i.productId,
+          variantId: i.variantId,
+          quantity: i.quantity,
+        })),
+      };
 
-      const newOrder = await orderService.create({
-        buyerId: user.id,
-        buyerName: user.name,
-        buyerEmail: user.email,
-        items: orderItems,
-        totalAmount: total,
-        status: 'placed',
-        shippingAddress: form,
-        paymentMethod: 'Razorpay',
-        paymentStatus: 'paid',
-      });
+      toast('Placing your order...', { icon: '📦' });
 
-      toast.success('Payment successful! Order placed.');
+      const result = await placeOrder(payload);
+
+      if (!result || !result.ok) {
+        toast.error('Failed to place order. Please try again.');
+        setLoading(false);
+        return;
+      }
+
+      const orderCount = result.orders.length;
+      toast.success(
+        orderCount === 1
+          ? `Order placed! Order #${result.orders[0].order.orderNumber}`
+          : `${orderCount} orders placed!`
+      );
+
       clearCart();
-      navigate(`/orders/${newOrder.id}`);
-    } catch {
-      toast.error('Payment failed. Please try again.');
+
+      // Navigate to home with a success message
+      // (We could create an /orders/success page later)
+      navigate('/');
+    } catch (error) {
+      console.error('Place order error:', error);
+      toast.error('Something went wrong');
     } finally {
       setLoading(false);
     }
@@ -99,7 +111,7 @@ export function Checkout() {
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-8">
-      {/* Checkout Steps Header */}
+      {/* Steps Header */}
       <div className="flex items-center justify-center mb-12">
         <div className="flex items-center">
           <div className={`flex flex-col items-center ${step >= 1 ? 'text-primary-600' : 'text-surface-400'}`}>
@@ -123,7 +135,7 @@ export function Checkout() {
       </div>
 
       <div className="flex flex-col lg:flex-row gap-8">
-        {/* Left Column (Forms) */}
+        {/* Left Column */}
         <div className="flex-1">
           {step === 1 ? (
             <div className="bg-white rounded-2xl border border-surface-200 p-6 sm:p-8">
@@ -140,24 +152,31 @@ export function Checkout() {
                     error={errors.fullName}
                   />
                   <Input
-                    label="Phone Number"
-                    value={form.phone}
-                    onChange={e => setForm({ ...form, phone: e.target.value })}
-                    error={errors.phone}
+                    label="Email"
+                    type="email"
+                    value={form.email}
+                    onChange={e => setForm({ ...form, email: e.target.value })}
+                    error={errors.email}
                   />
                 </div>
+                <Input
+                  label="Phone Number"
+                  value={form.phone}
+                  onChange={e => setForm({ ...form, phone: e.target.value })}
+                  error={errors.phone}
+                />
                 <Input
                   label="Address Line 1"
                   value={form.line1}
                   onChange={e => setForm({ ...form, line1: e.target.value })}
                   error={errors.line1}
-                  placeholder="Street address, P.O. box, company name, c/o"
+                  placeholder="Street address"
                 />
                 <Input
                   label="Address Line 2 (Optional)"
                   value={form.line2}
                   onChange={e => setForm({ ...form, line2: e.target.value })}
-                  placeholder="Apartment, suite, unit, building, floor, etc."
+                  placeholder="Apartment, suite, etc."
                 />
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                   <Input
@@ -189,11 +208,7 @@ export function Checkout() {
                     onChange={e => setForm({ ...form, pincode: e.target.value })}
                     error={errors.pincode}
                   />
-                  <Input
-                    label="Country"
-                    value={form.country}
-                    disabled
-                  />
+                  <Input label="Country" value={form.country} disabled />
                 </div>
                 <Button type="submit" size="lg" className="w-full sm:w-auto">
                   Continue to Payment
@@ -216,10 +231,14 @@ export function Checkout() {
                   </button>
                 </div>
                 <div className="text-sm text-surface-600 bg-surface-50 p-4 rounded-xl border border-surface-200">
-                  <p className="font-medium text-surface-900">{form.fullName} ({form.phone})</p>
+                  <p className="font-medium text-surface-900">
+                    {form.fullName} ({form.phone})
+                  </p>
                   <p>{form.line1}</p>
                   {form.line2 && <p>{form.line2}</p>}
-                  <p>{form.city}, {form.state} - {form.pincode}</p>
+                  <p>
+                    {form.city}, {form.state} - {form.pincode}
+                  </p>
                 </div>
               </div>
 
@@ -228,18 +247,19 @@ export function Checkout() {
                   <CreditCard className="w-6 h-6 text-primary-600" />
                   <h2 className="text-xl font-bold text-surface-900">Payment</h2>
                 </div>
-                
+
                 <div className="bg-blue-50 border border-blue-200 rounded-xl p-6 text-center">
-                  <img 
-                    src="https://upload.wikimedia.org/wikipedia/commons/1/1f/Razorpay_Logo.svg" 
-                    alt="Razorpay" 
-                    className="h-8 mx-auto mb-4"
-                  />
                   <p className="text-sm text-blue-800 mb-6">
-                    You will be securely redirected to Razorpay to complete your purchase. Payments are routed directly to the sellers.
+                    Razorpay integration is coming soon. For now, click below to place your order.
+                    Payments will route directly to each seller.
                   </p>
-                  <Button size="lg" loading={loading} onClick={handlePlaceOrder} className="w-full sm:w-auto px-8">
-                    Pay ₹{total.toLocaleString('en-IN')} via Razorpay
+                  <Button
+                    size="lg"
+                    loading={loading}
+                    onClick={handlePlaceOrder}
+                    className="w-full sm:w-auto px-8"
+                  >
+                    Place Order — ₹{total.toLocaleString('en-IN')}
                   </Button>
                 </div>
               </div>
@@ -247,30 +267,41 @@ export function Checkout() {
           )}
         </div>
 
-        {/* Right Column (Order Summary) */}
+        {/* Right Column — Order Summary */}
         <div className="w-full lg:w-96 flex-shrink-0">
           <div className="bg-white rounded-2xl border border-surface-200 p-6 sticky top-24">
             <h2 className="text-lg font-bold text-surface-900 mb-6">Order Summary</h2>
 
             <ul className="space-y-4 mb-6">
-              {items.map(({ product, quantity }) => (
-                <li key={product.id} className="flex gap-4">
+              {items.map((item) => (
+                <li key={item.variantId} className="flex gap-4">
                   <div className="relative">
                     <img
-                      src={product.images[0]}
-                      alt={product.title}
+                      src={item.image ?? 'https://via.placeholder.com/64'}
+                      alt={item.productName}
                       className="w-16 h-16 rounded-lg object-cover border border-surface-200"
+                      onError={(e) => {
+                        (e.target as HTMLImageElement).src =
+                          'https://via.placeholder.com/64?text=No+Image';
+                      }}
                     />
                     <span className="absolute -top-2 -right-2 w-5 h-5 bg-surface-500 text-white text-xs font-medium rounded-full flex items-center justify-center">
-                      {quantity}
+                      {item.quantity}
                     </span>
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-surface-900 line-clamp-2">{product.title}</p>
-                    <p className="text-xs text-surface-500 mt-1">Sold by {product.sellerName}</p>
+                    <p className="text-sm font-medium text-surface-900 line-clamp-2">
+                      {item.productName}
+                    </p>
+                    {Object.keys(item.variantAttributes).length > 0 && (
+                      <p className="text-xs text-surface-500 mt-0.5">
+                        {Object.values(item.variantAttributes).join(' / ')}
+                      </p>
+                    )}
+                    <p className="text-xs text-surface-500 mt-1">Sold by {item.companyName}</p>
                   </div>
                   <p className="text-sm font-medium text-surface-900">
-                    ₹{(product.price * quantity).toLocaleString('en-IN')}
+                    ₹{(item.price * item.quantity).toLocaleString('en-IN')}
                   </p>
                 </li>
               ))}
@@ -279,12 +310,18 @@ export function Checkout() {
             <div className="space-y-3 text-sm border-t border-surface-200 pt-4 mb-4">
               <div className="flex justify-between text-surface-600">
                 <span>Subtotal</span>
-                <span className="font-medium text-surface-900">₹{subtotal.toLocaleString('en-IN')}</span>
+                <span className="font-medium text-surface-900">
+                  ₹{subtotal.toLocaleString('en-IN')}
+                </span>
               </div>
               <div className="flex justify-between text-surface-600">
                 <span>Shipping fee</span>
                 <span className="font-medium text-surface-900">
-                  {shipping === 0 ? <span className="text-success-600">Free</span> : `₹${shipping}`}
+                  {shipping === 0 ? (
+                    <span className="text-success-600">Free</span>
+                  ) : (
+                    `₹${shipping}`
+                  )}
                 </span>
               </div>
             </div>
@@ -292,7 +329,9 @@ export function Checkout() {
             <div className="border-t border-surface-200 pt-4 mb-6">
               <div className="flex justify-between">
                 <span className="text-base font-bold text-surface-900">Total</span>
-                <span className="text-xl font-bold text-primary-600">₹{total.toLocaleString('en-IN')}</span>
+                <span className="text-xl font-bold text-primary-600">
+                  ₹{total.toLocaleString('en-IN')}
+                </span>
               </div>
             </div>
 

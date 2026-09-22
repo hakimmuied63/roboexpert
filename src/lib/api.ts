@@ -134,3 +134,77 @@ export type ProductVariant = {
       return null;
     }
   };
+  export type CartItemForOrder = {
+    productId: string;
+    variantId: string;
+    quantity: number;
+  };
+  
+  export type PlaceOrderPayload = {
+    buyer: {
+      name: string;
+      email: string;
+      phone: string;
+    };
+    shippingAddress: {
+      line1: string;
+      line2?: string;
+      city: string;
+      state: string;
+      pincode: string;
+      country: string;
+    };
+    items: CartItemForOrder[];
+  };
+  
+  export type PlaceOrderResponse = {
+    ok: boolean;
+    orders: Array<{
+      order: {
+        _id: string;
+        orderNumber: string;
+        total: number;
+        status: string;
+        paymentStatus: string;
+      };
+      items: Array<{
+        _id: string;
+        productSnapshot: {
+          name: string;
+          image?: string;
+          variantAttributes: Record<string, string>;
+          sku: string;
+        };
+        quantity: number;
+        unitPrice: number;
+        lineTotal: number;
+      }>;
+      company: {
+        _id: string;
+        name: string;
+        slug: string;
+      };
+    }>;
+    message: string;
+  };
+  
+  export const placeOrder = async (
+    payload: PlaceOrderPayload
+  ): Promise<PlaceOrderResponse | null> => {
+    try {
+      const res = await fetch(`${API_BASE}/orders`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => null);
+        console.error('placeOrder error response:', err);
+        return null;
+      }
+      return res.json();
+    } catch (error) {
+      console.error('placeOrder error:', error);
+      return null;
+    }
+  };
