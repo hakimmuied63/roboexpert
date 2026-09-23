@@ -2,7 +2,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { CartProvider } from './contexts/CartContext';
 import { ToastProvider } from './components/ui';
-
+import { AdminUsers } from './pages/admin/Users';
 // Layouts
 import { BuyerLayout } from './layouts/BuyerLayout';
 import { SellerLayout } from './layouts/SellerLayout';
@@ -133,6 +133,7 @@ function App() {
               <Route path="listings" element={<AdminListings />} />
               <Route path="sellers" element={<AdminSellers />} />
               <Route path="orders" element={<AdminOrders />} />
+              <Route path="users" element={<AdminUsers />} />
             </Route>
 
             {/* Catch-all */}

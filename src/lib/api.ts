@@ -304,3 +304,173 @@ export type CompanySummary = {
       return [];
     }
   };
+  // ---------- Admin API ----------
+
+export type AdminStats = {
+    companies: number;
+    activeCompanies: number;
+    products: number;
+    orders: number;
+    users: number;
+    revenue: number;
+    ordersByStatus: Array<{ _id: string; count: number }>;
+  };
+  
+  export const fetchAdminStats = async (): Promise<AdminStats | null> => {
+    try {
+      const res = await authFetch(`${API_BASE}/admin/stats`);
+      if (!res.ok) return null;
+      const data = await res.json();
+      return data.stats ?? null;
+    } catch (error) {
+      console.error('fetchAdminStats error:', error);
+      return null;
+    }
+  };
+  
+  export type AdminCompany = {
+    _id: string;
+    name: string;
+    slug: string;
+    ownerUserId: string;
+    contactEmail: string;
+    contactPhone?: string;
+    isActive: boolean;
+    createdAt: string;
+    updatedAt: string;
+  };
+  
+  export const fetchAdminCompanies = async (): Promise<AdminCompany[]> => {
+    try {
+      const res = await authFetch(`${API_BASE}/admin/companies`);
+      if (!res.ok) return [];
+      const data = await res.json();
+      return data.companies ?? [];
+    } catch (error) {
+      console.error('fetchAdminCompanies error:', error);
+      return [];
+    }
+  };
+  
+  export const toggleAdminCompanyStatus = async (
+    companyId: string
+  ): Promise<boolean> => {
+    try {
+      const res = await authFetch(
+        `${API_BASE}/admin/companies/${companyId}/toggle-status`,
+        { method: 'PATCH' }
+      );
+      return res.ok;
+    } catch (error) {
+      console.error('toggleAdminCompanyStatus error:', error);
+      return false;
+    }
+  };
+  
+  export const fetchAdminProducts = async (): Promise<Product[]> => {
+    try {
+      const res = await authFetch(`${API_BASE}/admin/products`);
+      if (!res.ok) return [];
+      const data = await res.json();
+      return data.products ?? [];
+    } catch (error) {
+      console.error('fetchAdminProducts error:', error);
+      return [];
+    }
+  };
+  
+  export const toggleAdminProductStatus = async (
+    productId: string
+  ): Promise<boolean> => {
+    try {
+      const res = await authFetch(
+        `${API_BASE}/admin/products/${productId}/toggle-status`,
+        { method: 'PATCH' }
+      );
+      return res.ok;
+    } catch (error) {
+      console.error('toggleAdminProductStatus error:', error);
+      return false;
+    }
+  };
+  
+  export const deleteAdminProduct = async (productId: string): Promise<boolean> => {
+    try {
+      const res = await authFetch(`${API_BASE}/admin/products/${productId}`, {
+        method: 'DELETE',
+      });
+      return res.ok;
+    } catch (error) {
+      console.error('deleteAdminProduct error:', error);
+      return false;
+    }
+  };
+  
+  export type AdminOrder = {
+    _id: string;
+    companyId: string;
+    orderNumber: string;
+    buyer: { name: string; email: string; phone: string };
+    shippingAddress: {
+      line1: string;
+      line2?: string;
+      city: string;
+      state: string;
+      pincode: string;
+      country: string;
+    };
+    subtotal: number;
+    shippingFee: number;
+    total: number;
+    status: string;
+    paymentStatus: string;
+    createdAt: string;
+    updatedAt: string;
+  };
+  
+  export const fetchAdminOrders = async (): Promise<AdminOrder[]> => {
+    try {
+      const res = await authFetch(`${API_BASE}/orders`);
+      if (!res.ok) return [];
+      const data = await res.json();
+      return data.orders ?? [];
+    } catch (error) {
+      console.error('fetchAdminOrders error:', error);
+      return [];
+    }
+  };
+  
+  export type AdminUser = {
+    _id: string;
+    email: string;
+    role: 'admin' | 'seller';
+    companyId: string | null;
+    name: string;
+    isActive: boolean;
+    createdAt: string;
+    updatedAt: string;
+  };
+  
+  export const fetchAdminUsers = async (): Promise<AdminUser[]> => {
+    try {
+      const res = await authFetch(`${API_BASE}/admin/users`);
+      if (!res.ok) return [];
+      const data = await res.json();
+      return data.users ?? [];
+    } catch (error) {
+      console.error('fetchAdminUsers error:', error);
+      return [];
+    }
+  };
+  
+  export const toggleAdminUserStatus = async (userId: string): Promise<boolean> => {
+    try {
+      const res = await authFetch(`${API_BASE}/admin/users/${userId}/toggle-status`, {
+        method: 'PATCH',
+      });
+      return res.ok;
+    } catch (error) {
+      console.error('toggleAdminUserStatus error:', error);
+      return false;
+    }
+  };

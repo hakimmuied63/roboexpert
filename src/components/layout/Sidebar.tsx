@@ -39,8 +39,8 @@ const adminLinks: SidebarLink[] = [
   { to: '/admin/listings', icon: <Package className="w-5 h-5" />, label: 'Listings' },
   { to: '/admin/orders', icon: <ListChecks className="w-5 h-5" />, label: 'Orders' },
   { to: '/admin/sellers', icon: <Users className="w-5 h-5" />, label: 'Sellers' },
+  { to: '/admin/users', icon: <Users className="w-5 h-5" />, label: 'Users' },
 ];
-
 export function Sidebar({ type }: SidebarProps) {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
@@ -87,13 +87,9 @@ export function Sidebar({ type }: SidebarProps) {
         <div className="p-4 border-b border-surface-100">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-full bg-primary-100 flex items-center justify-center overflow-hidden flex-shrink-0">
-              {user.avatar ? (
-                <img src={user.avatar} alt={user.name} className="w-full h-full object-cover" />
-              ) : (
-                <span className="text-sm font-medium text-primary-600">
-                  {user.name.charAt(0)}
-                </span>
-              )}
+            <span className="text-sm font-medium text-primary-600">
+              {user.name.charAt(0)}
+             </span>
             </div>
             <div className="min-w-0">
               <p className="text-sm font-medium text-surface-900 truncate">{user.name}</p>
