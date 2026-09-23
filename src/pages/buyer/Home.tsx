@@ -2,21 +2,26 @@ import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { ChevronLeft, ChevronRight, Package, Truck, Store } from 'lucide-react';
 import { LoadingSpinner } from '../../components/ui';
-import { fetchAllProducts, fetchCategories, type Product, type Category } from '../../lib/api';
+import {
+  fetchAllProducts,
+  fetchAllCompanies,
+  type Product,
+  type CompanySummary,
+} from '../../lib/api';
 
 const PROMO_BANNERS = [
   {
     id: 1,
     title: 'Electronics sale — up to 40% off',
     subtitle: 'Headphones, keyboards & more from sellers across India',
-    href: '/category/electronics',
+    href: '/search',
     bg: 'bg-primary-700',
   },
   {
     id: 2,
-    title: 'New home & living listings this week',
-    subtitle: 'Fresh picks for your space',
-    href: '/category/home-living',
+    title: 'New listings added this week',
+    subtitle: 'Fresh picks from our sellers',
+    href: '/search',
     bg: 'bg-surface-800',
   },
   {
@@ -41,7 +46,8 @@ function ProductTile({ product }: { product: Product }) {
           className="w-full h-full object-cover group-hover:scale-[1.03] transition-transform duration-300"
           loading="lazy"
           onError={(e) => {
-            (e.target as HTMLImageElement).src = 'https://via.placeholder.com/400?text=No+Image';
+            (e.target as HTMLImageElement).src =
+              'https://via.placeholder.com/400?text=No+Image';
           }}
         />
       </div>
@@ -62,49 +68,22 @@ function ProductTile({ product }: { product: Product }) {
   );
 }
 
-function ProductRow({
-  title,
-  products,
-  viewAllHref,
-}: {
-  title: string;
-  products: Product[];
-  viewAllHref: string;
-}) {
-  if (products.length === 0) return null;
-
-  return (
-    <section className="max-w-7xl mx-auto px-4">
-      <div className="flex items-center justify-between mb-3">
-        <h2 className="text-lg font-bold text-surface-900">{title}</h2>
-        <Link
-          to={viewAllHref}
-          className="text-sm font-medium text-primary-600 hover:text-primary-700 flex items-center gap-0.5"
-        >
-          See all <ChevronRight className="w-4 h-4" />
-        </Link>
-      </div>
-      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
-        {products.map((product) => (
-          <ProductTile key={product._id} product={product} />
-        ))}
-      </div>
-    </section>
-  );
-}
-
 export function Home() {
   const navigate = useNavigate();
   const [products, setProducts] = useState<Product[]>([]);
-  const [categories, setCategories] = useState<Category[]>([]);
+  const [companies, setCompanies] = useState<CompanySummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [promoIndex, setPromoIndex] = useState(0);
+  const [searchInput, setSearchInput] = useState('');
 
   useEffect(() => {
     async function load() {
-      const [prods, cats] = await Promise.all([fetchAllProducts(), fetchCategories()]);
+      const [prods, comps] = await Promise.all([
+        fetchAllProducts(),
+        fetchAllCompanies(),
+      ]);
       setProducts(prods);
-      setCategories(cats);
+      setCompanies(comps);
       setLoading(false);
     }
     load();
@@ -116,6 +95,13 @@ export function Home() {
     }, 5000);
     return () => clearInterval(timer);
   }, []);
+
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (searchInput.trim()) {
+      navigate(`/search?q=${encodeURIComponent(searchInput.trim())}`);
+    }
+  };
 
   if (loading) return <LoadingSpinner className="min-h-[40vh]" />;
 
@@ -156,31 +142,80 @@ export function Home() {
         </div>
       </div>
 
-      {/* Category chips */}
-      {categories.length > 0 && (
-        <div className="max-w-7xl mx-auto px-4 pt-4">
-          <div className="flex flex-wrap gap-2">
-            {categories.map((cat) => (
+      {/* Search bar */}
+      <div className="max-w-7xl mx-auto px-4 pt-6">
+        <form onSubmit={handleSearch} className="max-w-2xl mx-auto">
+          <div className="flex gap-2">
+            <input
+              type="text"
+              value={searchInput}
+              onChange={(e) => setSearchInput(e.target.value)}
+              placeholder="Search products across all sellers..."
+              className="flex-1 px-4 py-3 border border-surface-300 rounded-lg focus:outline-none focus:border-primary-500"
+            />
+            <button
+              type="submit"
+              className="bg-primary-600 hover:bg-primary-700 text-white px-6 py-3 rounded-lg font-semibold transition-colors"
+            >
+              Search
+            </button>
+          </div>
+        </form>
+      </div>
+
+      {/* Browse by Seller */}
+      {companies.length > 0 && (
+        <section className="max-w-7xl mx-auto px-4 pt-8">
+          <h2 className="text-lg font-bold text-surface-900 mb-4">Browse by Seller</h2>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {companies.map((company) => (
               <Link
-                key={cat._id}
-                to={`/category/${cat.slug}`}
-                className="px-3 py-1.5 text-sm bg-surface-100 hover:bg-primary-600 hover:text-white text-surface-700 rounded-full transition-colors"
+                key={company._id}
+                to={`/shop/${company._id}`}
+                className="bg-white border border-surface-200 rounded-xl p-5 hover:border-primary-500 hover:shadow-md transition-all group"
               >
-                {cat.name}
+                <div className="flex items-center gap-3">
+                  <div className="w-12 h-12 rounded-lg bg-primary-100 flex items-center justify-center text-primary-600 group-hover:bg-primary-600 group-hover:text-white transition-colors">
+                    <Store className="w-6 h-6" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-semibold text-surface-900 truncate group-hover:text-primary-600 transition-colors">
+                      {company.name}
+                    </p>
+                    <p className="text-xs text-surface-500 truncate">
+                      Visit store →
+                    </p>
+                  </div>
+                </div>
               </Link>
             ))}
           </div>
-        </div>
+        </section>
       )}
 
-      {/* Product grids */}
-      <div className="pt-6 space-y-8">
-        <ProductRow
-          title="All products"
-          products={products.slice(0, 10)}
-          viewAllHref="/search"
-        />
-      </div>
+      {/* All products */}
+      <section className="max-w-7xl mx-auto px-4 pt-10">
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="text-lg font-bold text-surface-900">All products</h2>
+          <Link
+            to="/search"
+            className="text-sm font-medium text-primary-600 hover:text-primary-700 flex items-center gap-0.5"
+          >
+            See all <ChevronRight className="w-4 h-4" />
+          </Link>
+        </div>
+        {products.length === 0 ? (
+          <div className="text-center py-12 text-surface-500">
+            No products available yet.
+          </div>
+        ) : (
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
+            {products.map((product) => (
+              <ProductTile key={product._id} product={product} />
+            ))}
+          </div>
+        )}
+      </section>
 
       {/* Bottom strip */}
       <div className="max-w-7xl mx-auto px-4 mt-10 pt-6 border-t border-surface-200">
@@ -191,7 +226,7 @@ export function Home() {
           </span>
           <span className="flex items-center gap-1.5">
             <Store className="w-3.5 h-3.5" />
-            Sellers across India
+            {companies.length} sellers
           </span>
           <span className="flex items-center gap-1.5">
             <Truck className="w-3.5 h-3.5" />
