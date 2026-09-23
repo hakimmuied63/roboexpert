@@ -1,13 +1,11 @@
 import { useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { Store, User, Briefcase } from 'lucide-react';
+import { Store, Briefcase } from 'lucide-react';
 import { Button, Input } from '../../components/ui';
 import { useAuth } from '../../contexts/AuthContext';
-import { authService } from '../../mocks/services';
 import toast from 'react-hot-toast';
 
 export function Login() {
-  const [role, setRole] = useState<'buyer' | 'seller'>('buyer');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -24,20 +22,26 @@ export function Login() {
 
     setLoading(true);
     try {
-      const user = await authService.login(email, password, role);
-      if (user) {
-        login(user);
-        toast.success(`Welcome back, ${user.name}!`);
-        
-        // Redirect to intended page or role home
-        const from = (location.state as any)?.from?.pathname;
-        if (from) {
-          navigate(from, { replace: true });
-        } else {
-          navigate(role === 'seller' ? '/seller' : '/');
-        }
+      const result = await login(email, password);
+
+      if (!result.success) {
+        toast.error(result.error);
+        return;
+      }
+
+      if (result.role !== 'seller') {
+        toast.error('This account is not a seller account');
+        return;
+      }
+
+      toast.success(`Welcome back, ${result.user.name}!`);
+
+      // Redirect to intended page or seller home
+      const from = (location.state as { from?: { pathname: string } })?.from?.pathname;
+      if (from) {
+        navigate(from, { replace: true });
       } else {
-        toast.error('Invalid credentials or wrong role selected');
+        navigate('/seller');
       }
     } catch {
       toast.error('An error occurred during login');
@@ -58,45 +62,24 @@ export function Login() {
               roboexpert<span className="text-primary-600">.in</span>
             </span>
           </Link>
-          <h2 className="text-3xl font-bold text-surface-900">Sign in to your account</h2>
+          <div className="inline-flex items-center gap-2 px-3 py-1 bg-primary-50 text-primary-700 rounded-full text-sm font-medium mb-3">
+            <Briefcase className="w-4 h-4" />
+            Seller Login
+          </div>
+          <h2 className="text-3xl font-bold text-surface-900">Sign in to your shop</h2>
           <p className="mt-2 text-sm text-surface-500">
-            Use <span className="font-medium text-surface-700">rahul@example.com</span> for Buyer,<br />
-            or <span className="font-medium text-surface-700">techzone@example.com</span> for Seller
+            Manage your products, orders, and payments
           </p>
         </div>
 
         <div className="bg-white rounded-2xl shadow-xl border border-surface-200 overflow-hidden">
-          {/* Role Tabs */}
-          <div className="flex border-b border-surface-200">
-            <button
-              onClick={() => setRole('buyer')}
-              className={`flex-1 py-4 text-sm font-medium flex items-center justify-center gap-2 transition-colors cursor-pointer ${
-                role === 'buyer'
-                  ? 'text-primary-600 border-b-2 border-primary-600 bg-primary-50/50'
-                  : 'text-surface-500 hover:text-surface-700 hover:bg-surface-50'
-              }`}
-            >
-              <User className="w-4 h-4" /> Buyer
-            </button>
-            <button
-              onClick={() => setRole('seller')}
-              className={`flex-1 py-4 text-sm font-medium flex items-center justify-center gap-2 transition-colors cursor-pointer ${
-                role === 'seller'
-                  ? 'text-primary-600 border-b-2 border-primary-600 bg-primary-50/50'
-                  : 'text-surface-500 hover:text-surface-700 hover:bg-surface-50'
-              }`}
-            >
-              <Briefcase className="w-4 h-4" /> Seller
-            </button>
-          </div>
-
           <div className="p-8">
             <form className="space-y-6" onSubmit={handleLogin}>
               <Input
                 label="Email address"
                 type="email"
                 value={email}
-                onChange={e => setEmail(e.target.value)}
+                onChange={(e) => setEmail(e.target.value)}
                 autoComplete="email"
                 required
               />
@@ -104,49 +87,31 @@ export function Login() {
                 label="Password"
                 type="password"
                 value={password}
-                onChange={e => setPassword(e.target.value)}
+                onChange={(e) => setPassword(e.target.value)}
                 autoComplete="current-password"
                 required
               />
-
-              <div className="flex items-center justify-between">
-                <div className="flex items-center">
-                  <input
-                    id="remember-me"
-                    name="remember-me"
-                    type="checkbox"
-                    className="h-4 w-4 text-primary-600 focus:ring-primary-500 border-surface-300 rounded"
-                  />
-                  <label htmlFor="remember-me" className="ml-2 block text-sm text-surface-700">
-                    Remember me
-                  </label>
-                </div>
-                <div className="text-sm">
-                  <a href="#" className="font-medium text-primary-600 hover:text-primary-500">
-                    Forgot your password?
-                  </a>
-                </div>
-              </div>
 
               <Button type="submit" fullWidth size="lg" loading={loading}>
                 Sign in
               </Button>
             </form>
           </div>
-          
+
           <div className="px-8 py-6 bg-surface-50 border-t border-surface-200 text-center text-sm">
-            <span className="text-surface-500">Don't have an account? </span>
-            {role === 'buyer' ? (
-              <Link to="/signup" className="font-medium text-primary-600 hover:text-primary-500">
-                Sign up as a Buyer
-              </Link>
-            ) : (
-              <Link to="/seller/signup" className="font-medium text-primary-600 hover:text-primary-500">
-                Register as a Seller
-              </Link>
-            )}
+            <span className="text-surface-500">Don't have a seller account? </span>
+            <Link to="/seller/signup" className="font-medium text-primary-600 hover:text-primary-500">
+              Register as a Seller
+            </Link>
           </div>
         </div>
+
+        <p className="text-center text-xs text-surface-400">
+          Are you an admin?{' '}
+          <Link to="/admin/login" className="text-primary-600 hover:text-primary-500 font-medium">
+            Admin login
+          </Link>
+        </p>
       </div>
     </div>
   );

@@ -1,6 +1,21 @@
 // ===== User Types =====
 export type UserRole = 'buyer' | 'seller' | 'admin';
 
+// ===== Real Auth User (matches backend response) =====
+
+export type AuthUserRole = 'seller' | 'admin';
+
+export interface AuthUser {
+  _id: string;
+  email: string;
+  role: AuthUserRole;
+  companyId: string | null;
+  name: string;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface User {
   id: string;
   name: string;

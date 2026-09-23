@@ -1,4 +1,20 @@
 const API_BASE = 'http://localhost:5001';
+const TOKEN_KEY = 'roboexpert_token';
+
+const getAuthHeaders = (): Record<string, string> => {
+  const token = localStorage.getItem(TOKEN_KEY);
+  return token ? { Authorization: `Bearer ${token}` } : {};
+};
+
+const authFetch = (url: string, options: RequestInit = {}) => {
+  return fetch(url, {
+    ...options,
+    headers: {
+      ...(options.headers ?? {}),
+      ...getAuthHeaders(),
+    },
+  });
+};
 
 export type Company = {
   _id: string;
