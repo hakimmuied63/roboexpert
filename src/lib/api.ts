@@ -721,3 +721,70 @@ export const deleteSellerCategory = async (
     return false;
   }
 };
+// ---------- Seller Company Profile ----------
+
+export type MyCompany = {
+  _id: string;
+  name: string;
+  slug: string;
+  ownerUserId: string;
+  contactEmail: string;
+  contactPhone?: string;
+  address?: {
+    line1?: string;
+    line2?: string;
+    city?: string;
+    state?: string;
+    pincode?: string;
+    country?: string;
+  };
+  logoUrl?: string;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export const fetchMyCompany = async (): Promise<MyCompany | null> => {
+  try {
+    const res = await authFetch(`${API_BASE}/companies/me`);
+    if (!res.ok) return null;
+    const data = await res.json();
+    return data.company ?? null;
+  } catch (error) {
+    console.error('fetchMyCompany error:', error);
+    return null;
+  }
+};
+
+export type UpdateCompanyPayload = {
+  name?: string;
+  contactEmail?: string;
+  contactPhone?: string;
+  address?: {
+    line1?: string;
+    line2?: string;
+    city?: string;
+    state?: string;
+    pincode?: string;
+    country?: string;
+  };
+  logoUrl?: string;
+};
+
+export const updateMyCompany = async (
+  payload: UpdateCompanyPayload
+): Promise<MyCompany | null> => {
+  try {
+    const res = await authFetch(`${API_BASE}/companies/me`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    if (!res.ok) return null;
+    const data = await res.json();
+    return data.company ?? null;
+  } catch (error) {
+    console.error('updateMyCompany error:', error);
+    return null;
+  }
+};
