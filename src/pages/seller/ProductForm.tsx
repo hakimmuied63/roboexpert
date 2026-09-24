@@ -1,82 +1,130 @@
-import { useState } from 'react';
-import { ArrowLeft, Upload, ImagePlus } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { ArrowLeft, Upload, Plus, Trash2 } from 'lucide-react';
 import { Button, Input, Textarea, Select } from '../../components/ui';
-import { productService } from '../../mocks/services';
-import { useAuth } from '../../contexts/AuthContext';
-import type { Product } from '../../types';
+import {
+  fetchSellerCategories,
+  createSellerProduct,
+  type Category,
+} from '../../lib/api';
 import toast from 'react-hot-toast';
 
 interface ProductFormProps {
-  product?: Product;
   onSave: () => void;
   onCancel: () => void;
 }
 
-const categoryOptions = [
-  { value: 'Electronics', label: 'Electronics' },
-  { value: 'Fashion & Apparel', label: 'Fashion & Apparel' },
-  { value: 'Home & Living', label: 'Home & Living' },
-  { value: 'Books & Stationery', label: 'Books & Stationery' },
-  { value: 'Sports & Fitness', label: 'Sports & Fitness' },
-  { value: 'Beauty & Health', label: 'Beauty & Health' },
-];
+type VariantDraft = {
+  sku: string;
+  size: string;
+  color: string;
+  price: string;
+  stock: string;
+};
 
-export function ProductForm({ product, onSave, onCancel }: ProductFormProps) {
-  const { user } = useAuth();
-  const isEditing = !!product;
+const emptyVariant = (): VariantDraft => ({
+  sku: '',
+  size: '',
+  color: '',
+  price: '',
+  stock: '',
+});
+
+export function ProductForm({ onSave, onCancel }: ProductFormProps) {
   const [loading, setLoading] = useState(false);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [categoriesLoading, setCategoriesLoading] = useState(true);
+
   const [form, setForm] = useState({
-    title: product?.title || '',
-    description: product?.description || '',
-    price: product?.price?.toString() || '',
-    compareAtPrice: product?.compareAtPrice?.toString() || '',
-    category: product?.category || '',
-    stock: product?.stock?.toString() || '',
-    tags: product?.tags?.join(', ') || '',
-    featured: product?.featured || false,
+    name: '',
+    description: '',
+    basePrice: '',
+    categoryId: '',
+    imageUrl: '',
   });
+
+  const [variants, setVariants] = useState<VariantDraft[]>([emptyVariant()]);
   const [errors, setErrors] = useState<Record<string, string>>({});
+
+  useEffect(() => {
+    async function load() {
+      const cats = await fetchSellerCategories();
+      setCategories(cats);
+      setCategoriesLoading(false);
+    }
+    load();
+  }, []);
+
+  const updateVariant = (index: number, patch: Partial<VariantDraft>) => {
+    setVariants((prev) =>
+      prev.map((v, i) => (i === index ? { ...v, ...patch } : v))
+    );
+  };
+
+  const addVariant = () => {
+    setVariants((prev) => [...prev, emptyVariant()]);
+  };
+
+  const removeVariant = (index: number) => {
+    setVariants((prev) => prev.filter((_, i) => i !== index));
+  };
 
   const validate = () => {
     const e: Record<string, string> = {};
-    if (!form.title.trim()) e.title = 'Title is required';
-    if (!form.description.trim()) e.description = 'Description is required';
-    if (!form.price || Number(form.price) <= 0) e.price = 'Valid price is required';
-    if (!form.category) e.category = 'Category is required';
-    if (!form.stock || Number(form.stock) < 0) e.stock = 'Valid stock quantity is required';
+    if (!form.name.trim()) e.name = 'Name is required';
+    if (!form.basePrice || Number(form.basePrice) <= 0) {
+      e.basePrice = 'Valid base price is required';
+    }
+
+    if (variants.length === 0) {
+      e.variants = 'At least one variant is required';
+    } else {
+      variants.forEach((v, i) => {
+        if (!v.sku.trim()) e[`variant_${i}_sku`] = 'SKU required';
+        if (!v.price || Number(v.price) <= 0) e[`variant_${i}_price`] = 'Valid price required';
+        if (v.stock === '' || Number(v.stock) < 0) {
+          e[`variant_${i}_stock`] = 'Valid stock required';
+        }
+      });
+    }
+
     setErrors(e);
     return Object.keys(e).length === 0;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!validate() || !user) return;
+    if (!validate()) {
+      toast.error('Please fix the errors below');
+      return;
+    }
 
     setLoading(true);
     try {
-      const productData = {
-        title: form.title,
-        description: form.description,
-        price: Number(form.price),
-        compareAtPrice: form.compareAtPrice ? Number(form.compareAtPrice) : undefined,
-        category: form.category,
-        stock: Number(form.stock),
-        tags: form.tags.split(',').map(t => t.trim()).filter(Boolean),
-        featured: form.featured,
-        sellerId: user.id,
-        sellerName: user.name,
-        images: product?.images || [
-          'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=400&h=400&fit=crop',
-        ],
+      const payload = {
+        name: form.name.trim(),
+        description: form.description.trim() || undefined,
+        basePrice: Number(form.basePrice),
+        categoryId: form.categoryId || undefined,
+        images: form.imageUrl.trim() ? [form.imageUrl.trim()] : [],
+        variants: variants.map((v) => ({
+          sku: v.sku.trim(),
+          attributes: {
+            ...(v.size.trim() ? { size: v.size.trim() } : {}),
+            ...(v.color.trim() ? { color: v.color.trim() } : {}),
+          },
+          price: Number(v.price),
+          stock: Number(v.stock),
+        })),
       };
 
-      if (isEditing && product) {
-        await productService.update(product.id, productData);
-        toast.success('Product updated successfully');
-      } else {
-        await productService.create(productData);
-        toast.success('Product created successfully');
+      const result = await createSellerProduct(payload);
+
+      if (!result) {
+        toast.error('Could not create product. Check for duplicate SKUs or try again.');
+        return;
       }
+
+      toast.success('Product created');
       onSave();
     } catch {
       toast.error('Something went wrong');
@@ -97,127 +145,144 @@ export function ProductForm({ product, onSave, onCancel }: ProductFormProps) {
           <ArrowLeft className="w-5 h-5" />
         </button>
         <div>
-          <h1 className="text-2xl font-bold text-surface-900">
-            {isEditing ? 'Edit Product' : 'Add New Product'}
-          </h1>
+          <h1 className="text-2xl font-bold text-surface-900">Add New Product</h1>
           <p className="text-surface-500 mt-0.5">
-            {isEditing ? 'Update your product details' : 'Fill in the details to list a new product'}
+            Fill in the details to list a new product
           </p>
         </div>
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-6">
-        {/* Images */}
-        <div className="bg-white rounded-xl border border-surface-200 p-6">
-          <h2 className="text-sm font-semibold text-surface-900 mb-4">Product Images</h2>
-          <div className="flex gap-4 flex-wrap">
-            {(product?.images || []).map((img, i) => (
-              <div
-                key={i}
-                className="w-24 h-24 rounded-lg border border-surface-200 overflow-hidden"
-              >
-                <img src={img} alt={`Product ${i + 1}`} className="w-full h-full object-cover" />
-              </div>
-            ))}
-            <button
-              type="button"
-              className="w-24 h-24 rounded-lg border-2 border-dashed border-surface-300 flex flex-col items-center justify-center gap-1 text-surface-400 hover:border-primary-400 hover:text-primary-500 transition-colors cursor-pointer"
-            >
-              <ImagePlus className="w-6 h-6" />
-              <span className="text-[10px]">Add Photo</span>
-            </button>
-          </div>
-          <p className="text-xs text-surface-400 mt-2">
-            Upload up to 5 images. First image will be the cover. (Mock — no actual upload)
-          </p>
-        </div>
-
         {/* Details */}
         <div className="bg-white rounded-xl border border-surface-200 p-6 space-y-5">
           <h2 className="text-sm font-semibold text-surface-900">Product Details</h2>
 
           <Input
-            label="Product Title"
-            value={form.title}
-            onChange={e => setForm({ ...form, title: e.target.value })}
-            error={errors.title}
-            placeholder="e.g., Premium Wireless Headphones"
+            label="Product Name"
+            value={form.name}
+            onChange={(e) => setForm({ ...form, name: e.target.value })}
+            error={errors.name}
+            placeholder="e.g., Classic White T-Shirt"
           />
 
           <Textarea
             label="Description"
             value={form.description}
-            onChange={e => setForm({ ...form, description: e.target.value })}
-            error={errors.description}
-            placeholder="Describe your product in detail..."
-            rows={5}
+            onChange={(e) => setForm({ ...form, description: e.target.value })}
+            placeholder="Describe your product..."
+            rows={4}
           />
 
           <Select
             label="Category"
-            value={form.category}
-            onChange={e => setForm({ ...form, category: e.target.value })}
-            error={errors.category}
-            options={categoryOptions}
-            placeholder="Select a category"
+            value={form.categoryId}
+            onChange={(e) => setForm({ ...form, categoryId: e.target.value })}
+            options={categories.map((c) => ({ value: c._id, label: c.name }))}
+            placeholder={categoriesLoading ? 'Loading...' : 'Select a category'}
           />
 
           <Input
-            label="Tags"
-            value={form.tags}
-            onChange={e => setForm({ ...form, tags: e.target.value })}
-            placeholder="e.g., wireless, bluetooth, premium (comma-separated)"
-            helperText="Add comma-separated tags for better discoverability"
-          />
-        </div>
-
-        {/* Pricing */}
-        <div className="bg-white rounded-xl border border-surface-200 p-6 space-y-5">
-          <h2 className="text-sm font-semibold text-surface-900">Pricing & Inventory</h2>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-            <Input
-              label="Price (₹)"
-              type="number"
-              value={form.price}
-              onChange={e => setForm({ ...form, price: e.target.value })}
-              error={errors.price}
-              placeholder="0.00"
-              min="0"
-            />
-            <Input
-              label="Compare at Price (₹)"
-              type="number"
-              value={form.compareAtPrice}
-              onChange={e => setForm({ ...form, compareAtPrice: e.target.value })}
-              placeholder="Optional — original price"
-              helperText="Shows as crossed-out price"
-              min="0"
-            />
-          </div>
-
-          <Input
-            label="Stock Quantity"
+            label="Base Price (₹)"
             type="number"
-            value={form.stock}
-            onChange={e => setForm({ ...form, stock: e.target.value })}
-            error={errors.stock}
+            value={form.basePrice}
+            onChange={(e) => setForm({ ...form, basePrice: e.target.value })}
+            error={errors.basePrice}
             placeholder="0"
             min="0"
           />
 
-          <label className="flex items-center gap-3 cursor-pointer">
-            <input
-              type="checkbox"
-              checked={form.featured}
-              onChange={e => setForm({ ...form, featured: e.target.checked })}
-              className="w-4 h-4 rounded border-surface-300 text-primary-600 focus:ring-primary-500"
-            />
-            <div>
-              <p className="text-sm font-medium text-surface-700">Featured Product</p>
-              <p className="text-xs text-surface-400">Show this product in featured sections</p>
+          <Input
+            label="Image URL"
+            value={form.imageUrl}
+            onChange={(e) => setForm({ ...form, imageUrl: e.target.value })}
+            placeholder="https://..."
+            helperText="Paste an image URL. Upload coming soon."
+          />
+        </div>
+
+        {/* Variants */}
+        <div className="bg-white rounded-xl border border-surface-200 p-6 space-y-5">
+          <div className="flex items-center justify-between">
+            <h2 className="text-sm font-semibold text-surface-900">
+              Variants ({variants.length})
+            </h2>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              icon={<Plus className="w-4 h-4" />}
+              onClick={addVariant}
+            >
+              Add Variant
+            </Button>
+          </div>
+
+          {errors.variants && (
+            <p className="text-sm text-danger-600">{errors.variants}</p>
+          )}
+
+          {variants.map((variant, i) => (
+            <div
+              key={i}
+              className="border border-surface-200 rounded-lg p-4 space-y-4 bg-surface-50"
+            >
+              <div className="flex items-center justify-between">
+                <p className="text-xs font-medium text-surface-600 uppercase">
+                  Variant {i + 1}
+                </p>
+                {variants.length > 1 && (
+                  <button
+                    type="button"
+                    onClick={() => removeVariant(i)}
+                    className="p-1.5 rounded text-danger-600 hover:bg-danger-50 transition-colors cursor-pointer"
+                    aria-label="Remove variant"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                )}
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <Input
+                  label="SKU"
+                  value={variant.sku}
+                  onChange={(e) => updateVariant(i, { sku: e.target.value })}
+                  error={errors[`variant_${i}_sku`]}
+                  placeholder="e.g., TSHIRT-WHT-M"
+                />
+                <Input
+                  label="Size (optional)"
+                  value={variant.size}
+                  onChange={(e) => updateVariant(i, { size: e.target.value })}
+                  placeholder="e.g., M, 42"
+                />
+                <Input
+                  label="Color (optional)"
+                  value={variant.color}
+                  onChange={(e) => updateVariant(i, { color: e.target.value })}
+                  placeholder="e.g., White"
+                />
+                <Input
+                  label="Price (₹)"
+                  type="number"
+                  value={variant.price}
+                  onChange={(e) => updateVariant(i, { price: e.target.value })}
+                  error={errors[`variant_${i}_price`]}
+                  placeholder="0"
+                  min="0"
+                />
+                <Input
+                  label="Stock"
+                  type="number"
+                  value={variant.stock}
+                  onChange={(e) => updateVariant(i, { stock: e.target.value })}
+                  error={errors[`variant_${i}_stock`]}
+                  placeholder="0"
+                  min="0"
+                />
+              </div>
             </div>
-          </label>
+          ))}
         </div>
 
         {/* Actions */}
@@ -226,7 +291,7 @@ export function ProductForm({ product, onSave, onCancel }: ProductFormProps) {
             Cancel
           </Button>
           <Button type="submit" loading={loading} icon={<Upload className="w-4 h-4" />}>
-            {isEditing ? 'Update Product' : 'Publish Product'}
+            Publish Product
           </Button>
         </div>
       </form>

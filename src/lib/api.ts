@@ -474,3 +474,173 @@ export type AdminStats = {
       return false;
     }
   };
+  // ---------- Seller API ----------
+
+export type SellerStats = {
+    totalProducts: number;
+    activeProducts: number;
+    totalOrders: number;
+    pendingOrders: number;
+    lowStockVariants: number;
+    revenue: number;
+    ordersByStatus: Array<{ _id: string; count: number }>;
+  };
+  
+  export const fetchSellerStats = async (): Promise<SellerStats | null> => {
+    try {
+      const res = await authFetch(`${API_BASE}/companies/me/stats`);
+      if (!res.ok) return null;
+      const data = await res.json();
+      return data.stats ?? null;
+    } catch (error) {
+      console.error('fetchSellerStats error:', error);
+      return null;
+    }
+  };
+  
+  export type SellerOrder = {
+    _id: string;
+    companyId: string;
+    orderNumber: string;
+    buyer: { name: string; email: string; phone: string };
+    shippingAddress: {
+      line1: string;
+      line2?: string;
+      city: string;
+      state: string;
+      pincode: string;
+      country: string;
+    };
+    subtotal: number;
+    shippingFee: number;
+    total: number;
+    status: string;
+    paymentStatus: string;
+    createdAt: string;
+    updatedAt: string;
+  };
+  
+  export const fetchSellerOrders = async (): Promise<SellerOrder[]> => {
+    try {
+      const res = await authFetch(`${API_BASE}/orders/my`);
+      if (!res.ok) return [];
+      const data = await res.json();
+      return data.orders ?? [];
+    } catch (error) {
+      console.error('fetchSellerOrders error:', error);
+      return [];
+    }
+  };
+  // ---------- Seller Products ----------
+
+export const fetchSellerProducts = async (): Promise<Product[]> => {
+    try {
+      const res = await authFetch(`${API_BASE}/products/me`);
+      if (!res.ok) return [];
+      const data = await res.json();
+      return data.products ?? [];
+    } catch (error) {
+      console.error('fetchSellerProducts error:', error);
+      return [];
+    }
+  };
+  
+  export const deleteSellerProduct = async (productId: string): Promise<boolean> => {
+    try {
+      const res = await authFetch(`${API_BASE}/products/me/${productId}`, {
+        method: 'DELETE',
+      });
+      return res.ok;
+    } catch (error) {
+      console.error('deleteSellerProduct error:', error);
+      return false;
+    }
+  };
+  // ---------- Seller Categories ----------
+
+export const fetchSellerCategories = async (): Promise<Category[]> => {
+  try {
+    const res = await authFetch(`${API_BASE}/categories/me`);
+    if (!res.ok) return [];
+    const data = await res.json();
+    return data.categories ?? [];
+  } catch (error) {
+    console.error('fetchSellerCategories error:', error);
+    return [];
+  }
+};
+
+// ---------- Seller Product Creation ----------
+
+export type CreateProductPayload = {
+  name: string;
+  description?: string;
+  basePrice: number;
+  categoryId?: string;
+  images: string[];
+  variants: Array<{
+    sku: string;
+    attributes: Record<string, string>;
+    price: number;
+    stock: number;
+  }>;
+};
+
+export const createSellerProduct = async (
+  payload: CreateProductPayload
+): Promise<boolean> => {
+  try {
+    const res = await authFetch(`${API_BASE}/products`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    return res.ok;
+  } catch (error) {
+    console.error('createSellerProduct error:', error);
+    return false;
+  }
+};
+export const fetchSellerOrderItems = async (
+    orderId: string
+  ): Promise<
+    Array<{
+      _id: string;
+      productSnapshot: {
+        name: string;
+        image?: string;
+        variantAttributes: Record<string, string>;
+        sku: string;
+      };
+      quantity: number;
+      unitPrice: number;
+      lineTotal: number;
+    }>
+  > => {
+    try {
+      const res = await authFetch(`${API_BASE}/orders/my/${orderId}`);
+      if (!res.ok) return [];
+      const data = await res.json();
+      return data.items ?? [];
+    } catch (error) {
+      console.error('fetchSellerOrderItems error:', error);
+      return [];
+    }
+  };
+  
+  export const updateSellerOrderStatus = async (
+    orderId: string,
+    status: string
+  ): Promise<boolean> => {
+    try {
+      const res = await authFetch(`${API_BASE}/orders/my/${orderId}/status`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status }),
+      });
+      return res.ok;
+    } catch (error) {
+      console.error('updateSellerOrderStatus error:', error);
+      return false;
+    }
+  };

@@ -2,21 +2,12 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useCart } from '../../contexts/CartContext';
 import { Button, EmptyState } from '../../components/ui';
 import { Trash2, ShoppingCart, ShieldCheck } from 'lucide-react';
-import { useAuth } from '../../contexts/AuthContext';
-import toast from 'react-hot-toast';
 
 export function Cart() {
   const { items, totalItems, totalPrice, updateQuantity, removeItem } = useCart();
-  const { isAuthenticated } = useAuth();
   const navigate = useNavigate();
-
   const handleCheckout = () => {
-    if (!isAuthenticated) {
-      toast('Please login to checkout', { icon: '🔐' });
-      navigate('/login?redirect=/checkout');
-    } else {
-      navigate('/checkout');
-    }
+    navigate('/checkout');
   };
 
   if (items.length === 0) {

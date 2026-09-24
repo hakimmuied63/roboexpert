@@ -21,8 +21,6 @@ import { Search } from './pages/buyer/Search';
 import { ProductDetail } from './pages/buyer/ProductDetail';
 import { Cart } from './pages/buyer/Cart';
 import { Checkout } from './pages/buyer/Checkout';
-import { BuyerOrders } from './pages/buyer/Orders';
-import { OrderDetail } from './pages/buyer/OrderDetail';
 import { SellerProfile } from './pages/buyer/SellerProfile';
 import { StorefrontPage } from './pages/buyer/StorefrontPage';
 
@@ -68,41 +66,16 @@ function App() {
             <Route path="/admin/login" element={<AdminLogin />} />
 
             {/* Buyer Routes (Storefront) */}
-            <Route path="/" element={<BuyerLayout />}>
+              <Route path="/" element={<BuyerLayout />}>
               <Route index element={<Home />} />
               <Route path="category/:slug" element={<CategoryPage />} />
               <Route path="search" element={<Search />} />
               <Route path="product/:id" element={<ProductDetail />} />
               <Route path="cart" element={<Cart />} />
               <Route path="seller-profile/:id" element={<SellerProfile />} />
-              <Route path="shop/:companyId" element={<StorefrontPage />} />
-              
-              {/* Protected Buyer Routes */}
-              <Route 
-                path="checkout" 
-                element={
-                  <ProtectedRoute allowedRoles={['buyer']}>
-                    <Checkout />
-                  </ProtectedRoute>
-                } 
-              />
-              <Route 
-                path="orders" 
-                element={
-                  <ProtectedRoute allowedRoles={['buyer']}>
-                    <BuyerOrders />
-                  </ProtectedRoute>
-                } 
-              />
-              <Route 
-                path="orders/:id" 
-                element={
-                  <ProtectedRoute allowedRoles={['buyer']}>
-                    <OrderDetail />
-                  </ProtectedRoute>
-                } 
-              />
-            </Route>
+              <Route path="shop/:companyId" element={<StorefrontPage />} />                      {/* Guest checkout — no auth required */}
+               <Route path="checkout" element={<Checkout />} />
+               </Route>
 
             {/* Seller Routes (Dashboard) */}
             <Route 
