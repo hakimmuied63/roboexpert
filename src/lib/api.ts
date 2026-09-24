@@ -843,3 +843,111 @@ export const deletePaymentConfig = async (): Promise<boolean> => {
     return false;
   }
 };
+// ---------- Seller Signup ----------
+
+export type SignupSellerPayload = {
+  email: string;
+  password: string;
+  name: string;
+  businessName: string;
+};
+
+export type SignupSellerResult =
+  | {
+      success: true;
+      user: {
+        _id: string;
+        email: string;
+        role: 'seller' | 'admin';
+        companyId: string | null;
+        name: string;
+        isActive: boolean;
+        createdAt: string;
+        updatedAt: string;
+      };
+      accessToken: string;
+      refreshToken: string;
+    }
+  | { success: false; error: string };
+
+export const signupSeller = async (
+  payload: SignupSellerPayload
+): Promise<SignupSellerResult> => {
+  try {
+    // Step 1: create user
+    const signupRes = await fetch(`${API_BASE}/auth/signup`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        email: payload.email,
+        password: payload.password,
+        name: payload.name,
+        role: 'seller',
+      }),
+    });
+
+    const signupData = await signupRes.json().catch(() => null);
+
+    if (!signupRes.ok || !signupData || !signupData.ok) {
+      return {
+        success: false,
+        error: signupData?.error ?? 'Signup failed',
+      };
+    }
+
+    const { accessToken } = signupData;
+
+    // Step 2: create company for this user
+    const companyRes = await fetch(`${API_BASE}/companies`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${accessToken}`,
+      },
+      body: JSON.stringify({
+        name: payload.businessName,
+        contactEmail: payload.email,
+      }),
+    });
+
+    const companyData = await companyRes.json().catch(() => null);
+
+    if (!companyRes.ok || !companyData || !companyData.ok) {
+      return {
+        success: false,
+        error:
+          companyData?.error ??
+          'Account created but company setup failed. Please contact support.',
+      };
+    }
+
+       // Company is created. Log in again to get a fresh token with companyId baked in.
+       const loginRes = await fetch(`${API_BASE}/auth/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: payload.email,
+          password: payload.password,
+        }),
+      });
+  
+      const loginData = await loginRes.json().catch(() => null);
+  
+      if (!loginRes.ok || !loginData || !loginData.ok) {
+        return {
+          success: false,
+          error: 'Company created, but login failed. Please log in manually.',
+        };
+      }
+  
+      return {
+        success: true,
+        user: loginData.user,
+        accessToken: loginData.accessToken,
+        refreshToken: loginData.refreshToken,
+      };
+    } catch (error) {
+      console.error('signupSeller error:', error);
+      return { success: false, error: 'Network error — please try again' };
+    }
+  };

@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import type { AuthUser } from '../types';
+import { signupSeller } from '../lib/api';
 
 const API_BASE = 'http://localhost:5001';
 
@@ -16,6 +17,12 @@ interface AuthContextType {
   isAuthenticated: boolean;
   isLoading: boolean;
   login: (email: string, password: string) => Promise<LoginResult>;
+  signup: (
+    email: string,
+    password: string,
+    name: string,
+    businessName: string
+  ) => Promise<LoginResult>;
   logout: () => Promise<void>;
   getToken: () => string | null;
 }
@@ -61,7 +68,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const accessToken: string = data.accessToken;
       const refreshToken: string = data.refreshToken;
 
-      // Store in localStorage
       localStorage.setItem(TOKEN_KEY, accessToken);
       localStorage.setItem(REFRESH_KEY, refreshToken);
       localStorage.setItem(USER_KEY, JSON.stringify(authUser));
@@ -77,6 +83,33 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       console.error('login error:', error);
       return { success: false, error: 'Network error — please try again' };
     }
+  };
+
+  const signup = async (
+    email: string,
+    password: string,
+    name: string,
+    businessName: string
+  ): Promise<LoginResult> => {
+    const result = await signupSeller({ email, password, name, businessName });
+
+    if (!result.success) {
+      return { success: false, error: result.error };
+    }
+
+    const authUser = result.user as AuthUser;
+
+    localStorage.setItem(TOKEN_KEY, result.accessToken);
+    localStorage.setItem(REFRESH_KEY, result.refreshToken);
+    localStorage.setItem(USER_KEY, JSON.stringify(authUser));
+
+    setUser(authUser);
+
+    return {
+      success: true,
+      role: authUser.role,
+      user: authUser,
+    };
   };
 
   const logout = async () => {
@@ -108,6 +141,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         isAuthenticated: !!user,
         isLoading,
         login,
+        signup,
         logout,
         getToken,
       }}
