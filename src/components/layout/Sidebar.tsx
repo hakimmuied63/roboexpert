@@ -12,6 +12,7 @@ import {
   Users,
   ListChecks,
   BarChart3,
+  Tag,
 } from 'lucide-react';
 import { useState } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
@@ -29,6 +30,7 @@ interface SidebarProps {
 const sellerLinks: SidebarLink[] = [
   { to: '/seller', icon: <LayoutDashboard className="w-5 h-5" />, label: 'Overview' },
   { to: '/seller/products', icon: <Package className="w-5 h-5" />, label: 'Products' },
+  { to: '/seller/categories', icon: <Tag className="w-5 h-5" />, label: 'Categories' },
   { to: '/seller/orders', icon: <ShoppingBag className="w-5 h-5" />, label: 'Orders' },
   { to: '/seller/payments', icon: <CreditCard className="w-5 h-5" />, label: 'Payments' },
   { to: '/seller/settings', icon: <Settings className="w-5 h-5" />, label: 'Settings' },

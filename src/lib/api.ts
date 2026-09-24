@@ -669,3 +669,55 @@ export const fetchSellerOrderItems = async (
       return false;
     }
   };
+  // ---------- Seller Category CRUD ----------
+
+export const createSellerCategory = async (
+  name: string
+): Promise<Category | null> => {
+  try {
+    const res = await authFetch(`${API_BASE}/categories`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name }),
+    });
+    if (!res.ok) return null;
+    const data = await res.json();
+    return data.category ?? null;
+  } catch (error) {
+    console.error('createSellerCategory error:', error);
+    return null;
+  }
+};
+
+export const updateSellerCategory = async (
+  categoryId: string,
+  name: string
+): Promise<Category | null> => {
+  try {
+    const res = await authFetch(`${API_BASE}/categories/${categoryId}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name }),
+    });
+    if (!res.ok) return null;
+    const data = await res.json();
+    return data.category ?? null;
+  } catch (error) {
+    console.error('updateSellerCategory error:', error);
+    return null;
+  }
+};
+
+export const deleteSellerCategory = async (
+  categoryId: string
+): Promise<boolean> => {
+  try {
+    const res = await authFetch(`${API_BASE}/categories/${categoryId}`, {
+      method: 'DELETE',
+    });
+    return res.ok;
+  } catch (error) {
+    console.error('deleteSellerCategory error:', error);
+    return false;
+  }
+};
