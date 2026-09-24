@@ -788,3 +788,58 @@ export const updateMyCompany = async (
     return null;
   }
 };
+// ---------- Seller Payment Config ----------
+
+export type SellerPaymentConfig = {
+  _id: string;
+  companyId: string;
+  razorpayKeyId: string;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type PaymentConfigStatus = {
+  configured: boolean;
+  config: SellerPaymentConfig | null;
+};
+
+export const fetchMyPaymentConfig = async (): Promise<PaymentConfigStatus> => {
+  try {
+    const res = await authFetch(`${API_BASE}/payment-config/me`);
+    if (!res.ok) return { configured: false, config: null };
+    return res.json();
+  } catch (error) {
+    console.error('fetchMyPaymentConfig error:', error);
+    return { configured: false, config: null };
+  }
+};
+
+export const savePaymentConfig = async (
+  razorpayKeyId: string,
+  razorpayKeySecret: string
+): Promise<boolean> => {
+  try {
+    const res = await authFetch(`${API_BASE}/payment-config`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ razorpayKeyId, razorpayKeySecret }),
+    });
+    return res.ok;
+  } catch (error) {
+    console.error('savePaymentConfig error:', error);
+    return false;
+  }
+};
+
+export const deletePaymentConfig = async (): Promise<boolean> => {
+  try {
+    const res = await authFetch(`${API_BASE}/payment-config/me`, {
+      method: 'DELETE',
+    });
+    return res.ok;
+  } catch (error) {
+    console.error('deletePaymentConfig error:', error);
+    return false;
+  }
+};
