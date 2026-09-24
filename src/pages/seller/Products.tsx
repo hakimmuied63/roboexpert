@@ -24,6 +24,7 @@ export function SellerProducts() {
   const [deleteTarget, setDeleteTarget] = useState<Product | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [showForm, setShowForm] = useState(false);
+  const [editingProduct, setEditingProduct] = useState<Product | null>(null);
 
   const loadProducts = async () => {
     setLoading(true);
@@ -57,22 +58,29 @@ export function SellerProducts() {
   };
 
   const handleAdd = () => {
+    setEditingProduct(null);
     setShowForm(true);
   };
 
-  const handleEdit = (_product: Product) => {
-    toast('Edit Product is coming soon', { icon: '🚧' });
+  const handleEdit = (product: Product) => {
+    setEditingProduct(product);
+    setShowForm(true);
   };
 
-  // Show form instead of list when adding
+  // Show form instead of list when adding/editing
   if (showForm) {
     return (
       <ProductForm
+        product={editingProduct ?? undefined}
         onSave={() => {
           setShowForm(false);
+          setEditingProduct(null);
           loadProducts();
         }}
-        onCancel={() => setShowForm(false)}
+        onCancel={() => {
+          setShowForm(false);
+          setEditingProduct(null);
+        }}
       />
     );
   }

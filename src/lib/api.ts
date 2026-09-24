@@ -644,3 +644,28 @@ export const fetchSellerOrderItems = async (
       return false;
     }
   };
+  export type UpdateProductPayload = {
+    name?: string;
+    description?: string;
+    basePrice?: number;
+    categoryId?: string | null;
+    images?: string[];
+    isActive?: boolean;
+  };
+  
+  export const updateSellerProduct = async (
+    productId: string,
+    payload: UpdateProductPayload
+  ): Promise<boolean> => {
+    try {
+      const res = await authFetch(`${API_BASE}/products/me/${productId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      return res.ok;
+    } catch (error) {
+      console.error('updateSellerProduct error:', error);
+      return false;
+    }
+  };
