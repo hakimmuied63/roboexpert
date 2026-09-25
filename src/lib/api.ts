@@ -951,3 +951,16 @@ export const signupSeller = async (
       return { success: false, error: 'Network error — please try again' };
     }
   };
+  // ---------- Marketplace Categories ----------
+
+export const fetchMarketplaceCategories = async (): Promise<Category[]> => {
+  try {
+    const res = await fetch(`${API_BASE}/catalog/categories`);
+    if (!res.ok) return [];
+    const data = await res.json();
+    return data.categories ?? [];
+  } catch (error) {
+    console.error('fetchMarketplaceCategories error:', error);
+    return [];
+  }
+};

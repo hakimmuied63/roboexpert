@@ -74,7 +74,6 @@ export function Home() {
   const [companies, setCompanies] = useState<CompanySummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [promoIndex, setPromoIndex] = useState(0);
-  const [searchInput, setSearchInput] = useState('');
 
   useEffect(() => {
     async function load() {
@@ -95,13 +94,6 @@ export function Home() {
     }, 5000);
     return () => clearInterval(timer);
   }, []);
-
-  const handleSearch = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (searchInput.trim()) {
-      navigate(`/search?q=${encodeURIComponent(searchInput.trim())}`);
-    }
-  };
 
   if (loading) return <LoadingSpinner className="min-h-[40vh]" />;
 
@@ -142,56 +134,7 @@ export function Home() {
         </div>
       </div>
 
-      {/* Search bar */}
-      <div className="max-w-7xl mx-auto px-4 pt-6">
-        <form onSubmit={handleSearch} className="max-w-2xl mx-auto">
-          <div className="flex gap-2">
-            <input
-              type="text"
-              value={searchInput}
-              onChange={(e) => setSearchInput(e.target.value)}
-              placeholder="Search products across all sellers..."
-              className="flex-1 px-4 py-3 border border-surface-300 rounded-lg focus:outline-none focus:border-primary-500"
-            />
-            <button
-              type="submit"
-              className="bg-primary-600 hover:bg-primary-700 text-white px-6 py-3 rounded-lg font-semibold transition-colors"
-            >
-              Search
-            </button>
-          </div>
-        </form>
-      </div>
-
-      {/* Browse by Seller */}
-      {companies.length > 0 && (
-        <section className="max-w-7xl mx-auto px-4 pt-8">
-          <h2 className="text-lg font-bold text-surface-900 mb-4">Browse by Seller</h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {companies.map((company) => (
-              <Link
-                key={company._id}
-                to={`/shop/${company._id}`}
-                className="bg-white border border-surface-200 rounded-xl p-5 hover:border-primary-500 hover:shadow-md transition-all group"
-              >
-                <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 rounded-lg bg-primary-100 flex items-center justify-center text-primary-600 group-hover:bg-primary-600 group-hover:text-white transition-colors">
-                    <Store className="w-6 h-6" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="font-semibold text-surface-900 truncate group-hover:text-primary-600 transition-colors">
-                      {company.name}
-                    </p>
-                    <p className="text-xs text-surface-500 truncate">
-                      Visit store →
-                    </p>
-                  </div>
-                </div>
-              </Link>
-            ))}
-          </div>
-        </section>
-      )}
+    
 
       {/* All products */}
       <section className="max-w-7xl mx-auto px-4 pt-10">

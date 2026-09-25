@@ -10,11 +10,6 @@ export function Search() {
 
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
-  const [localQuery, setLocalQuery] = useState(query);
-
-  useEffect(() => {
-    setLocalQuery(query);
-  }, [query]);
 
   useEffect(() => {
     async function load() {
@@ -31,38 +26,9 @@ export function Search() {
     load();
   }, [query]);
 
-  const handleSearch = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (localQuery.trim()) {
-      setSearchParams({ q: localQuery.trim() });
-    } else {
-      setSearchParams({});
-    }
-  };
-
   return (
     <div className="max-w-7xl mx-auto px-4 py-8 space-y-8">
-      {/* Search Header */}
-      <div className="bg-white rounded-2xl border border-surface-200 p-6 sm:p-8 shadow-sm">
-        <form onSubmit={handleSearch} className="max-w-3xl mx-auto relative group">
-          <div className="absolute inset-y-0 left-4 flex items-center pointer-events-none">
-            <SearchIcon className="h-5 w-5 text-surface-400 group-focus-within:text-primary-600 transition-colors" />
-          </div>
-          <input
-            type="text"
-            value={localQuery}
-            onChange={(e) => setLocalQuery(e.target.value)}
-            className="block w-full pl-12 pr-32 py-4 text-base bg-surface-50 border-2 border-surface-200 rounded-xl
-              focus:bg-white focus:ring-0 focus:border-primary-500 transition-all"
-            placeholder="Search products, brands, or categories..."
-          />
-          <div className="absolute inset-y-2 right-2">
-            <Button type="submit" className="h-full px-6">
-              Search
-            </Button>
-          </div>
-        </form>
-      </div>
+    
 
       <div className="flex items-center justify-between">
         <h2 className="text-xl font-bold text-surface-900">
