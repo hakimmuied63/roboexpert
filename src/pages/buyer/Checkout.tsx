@@ -4,13 +4,20 @@ import { useCart } from '../../contexts/CartContext';
 import { Button, Input, Select } from '../../components/ui';
 import { placeOrder } from '../../lib/api';
 import toast from 'react-hot-toast';
-import { CheckCircle2, ShieldCheck, MapPin, CreditCard } from 'lucide-react';
+import {
+  CheckCircle2,
+  ShieldCheck,
+  MapPin,
+  CreditCard,
+  Banknote,
+} from 'lucide-react';
 
 export function Checkout() {
   const { items, totalPrice, clearCart } = useCart();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [step, setStep] = useState<1 | 2>(1);
+  const [paymentMethod, setPaymentMethod] = useState<'cod' | 'online'>('online');
 
   const [form, setForm] = useState({
     fullName: '',
@@ -72,6 +79,7 @@ export function Checkout() {
           pincode: form.pincode,
           country: form.country,
         },
+        paymentMethod,
         items: items.map((i) => ({
           productId: i.productId,
           variantId: i.variantId,
@@ -97,9 +105,6 @@ export function Checkout() {
       );
 
       clearCart();
-
-      // Navigate to home with a success message
-      // (We could create an /orders/success page later)
       navigate('/');
     } catch (error) {
       console.error('Place order error:', error);
@@ -245,23 +250,92 @@ export function Checkout() {
               <div className="bg-white rounded-2xl border border-surface-200 p-6 sm:p-8">
                 <div className="flex items-center gap-3 mb-6">
                   <CreditCard className="w-6 h-6 text-primary-600" />
-                  <h2 className="text-xl font-bold text-surface-900">Payment</h2>
+                  <h2 className="text-xl font-bold text-surface-900">Payment Method</h2>
                 </div>
 
-                <div className="bg-blue-50 border border-blue-200 rounded-xl p-6 text-center">
-                  <p className="text-sm text-blue-800 mb-6">
-                    Razorpay integration is coming soon. For now, click below to place your order.
-                    Payments will route directly to each seller.
-                  </p>
-                  <Button
-                    size="lg"
-                    loading={loading}
-                    onClick={handlePlaceOrder}
-                    className="w-full sm:w-auto px-8"
+                <div className="space-y-3 mb-6">
+                  {/* Pay Online */}
+                  <label
+                    className={`flex items-start gap-4 p-4 rounded-xl border-2 cursor-pointer transition-colors ${
+                      paymentMethod === 'online'
+                        ? 'border-primary-500 bg-primary-50'
+                        : 'border-surface-200 hover:border-primary-200'
+                    }`}
                   >
-                    Place Order — ₹{total.toLocaleString('en-IN')}
-                  </Button>
+                    <input
+                      type="radio"
+                      name="payment"
+                      value="online"
+                      checked={paymentMethod === 'online'}
+                      onChange={() => setPaymentMethod('online')}
+                      className="sr-only"
+                    />
+                    <div
+                      className={`w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 ${
+                        paymentMethod === 'online'
+                          ? 'bg-primary-600 text-white'
+                          : 'bg-surface-100 text-surface-500'
+                      }`}
+                    >
+                      <CreditCard className="w-5 h-5" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-semibold text-surface-900">Pay Online</p>
+                      <p className="text-xs text-surface-500 mt-0.5">
+                        UPI, Credit Card, Debit Card, Netbanking — secured by Razorpay
+                      </p>
+                    </div>
+                  </label>
+
+                  {/* Cash on Delivery */}
+                  <label
+                    className={`flex items-start gap-4 p-4 rounded-xl border-2 cursor-pointer transition-colors ${
+                      paymentMethod === 'cod'
+                        ? 'border-primary-500 bg-primary-50'
+                        : 'border-surface-200 hover:border-primary-200'
+                    }`}
+                  >
+                    <input
+                      type="radio"
+                      name="payment"
+                      value="cod"
+                      checked={paymentMethod === 'cod'}
+                      onChange={() => setPaymentMethod('cod')}
+                      className="sr-only"
+                    />
+                    <div
+                      className={`w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 ${
+                        paymentMethod === 'cod'
+                          ? 'bg-primary-600 text-white'
+                          : 'bg-surface-100 text-surface-500'
+                      }`}
+                    >
+                      <Banknote className="w-5 h-5" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-semibold text-surface-900">Cash on Delivery</p>
+                      <p className="text-xs text-surface-500 mt-0.5">
+                        Pay in cash when your order is delivered to your doorstep
+                      </p>
+                    </div>
+                  </label>
                 </div>
+
+                {paymentMethod === 'online' && (
+                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4 text-xs text-blue-800">
+                    Razorpay checkout will open when you place your order. Your payment goes
+                    directly to the seller's account.
+                  </div>
+                )}
+
+                <Button
+                  size="lg"
+                  loading={loading}
+                  onClick={handlePlaceOrder}
+                  className="w-full sm:w-auto px-8"
+                >
+                  Place Order — ₹{total.toLocaleString('en-IN')}
+                </Button>
               </div>
             </div>
           )}

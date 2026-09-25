@@ -173,6 +173,7 @@ export type PlaceOrderPayload = {
     pincode: string;
     country: string;
   };
+  paymentMethod: 'cod' | 'online';
   items: CartItemForOrder[];
 };
 
@@ -515,6 +516,7 @@ export type SellerStats = {
     shippingFee: number;
     total: number;
     status: string;
+    paymentMethod: 'cod' | 'online';
     paymentStatus: string;
     createdAt: string;
     updatedAt: string;

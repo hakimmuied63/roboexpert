@@ -66,7 +66,6 @@ export function SellerOrders() {
 
     setExpandedOrder(orderId);
 
-    // Fetch items if we haven't already
     if (!itemsByOrder[orderId]) {
       setItemsLoading(orderId);
       const items = await fetchSellerOrderItems(orderId);
@@ -176,7 +175,7 @@ export function SellerOrders() {
                       <Package className="w-5 h-5" />
                     </div>
                     <div>
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2 flex-wrap">
                         <span className="text-sm font-semibold text-primary-600">
                           {order.orderNumber}
                         </span>
@@ -186,6 +185,15 @@ export function SellerOrders() {
                           }`}
                         >
                           {order.status}
+                        </span>
+                        <span
+                          className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
+                            order.paymentMethod === 'cod'
+                              ? 'bg-orange-50 text-orange-700'
+                              : 'bg-blue-50 text-blue-700'
+                          }`}
+                        >
+                          {order.paymentMethod === 'cod' ? 'COD' : 'Online'}
                         </span>
                       </div>
                       <p className="text-sm text-surface-600 mt-0.5">
@@ -254,10 +262,7 @@ export function SellerOrders() {
                               className="flex items-center gap-3 bg-white rounded-lg p-3 border border-surface-100"
                             >
                               <img
-                                src={
-                                  item.productSnapshot.image ??
-                                  'https://via.placeholder.com/40'
-                                }
+                                src={item.productSnapshot.image ?? 'https://via.placeholder.com/40'}
                                 alt={item.productSnapshot.name}
                                 className="w-10 h-10 rounded-lg object-cover bg-surface-100"
                                 onError={(e) => {
@@ -296,9 +301,7 @@ export function SellerOrders() {
                         <div className="bg-white rounded-lg p-3 border border-surface-100 text-sm text-surface-700">
                           <p className="font-medium">{order.buyer.name}</p>
                           <p>{order.shippingAddress.line1}</p>
-                          {order.shippingAddress.line2 && (
-                            <p>{order.shippingAddress.line2}</p>
-                          )}
+                          {order.shippingAddress.line2 && <p>{order.shippingAddress.line2}</p>}
                           <p>
                             {order.shippingAddress.city}, {order.shippingAddress.state} -{' '}
                             {order.shippingAddress.pincode}
@@ -312,6 +315,12 @@ export function SellerOrders() {
                           Payment
                         </h4>
                         <div className="bg-white rounded-lg p-3 border border-surface-100 text-sm">
+                          <div className="flex items-center justify-between mb-2">
+                            <span className="text-surface-600">Method</span>
+                            <span className="text-sm font-medium text-surface-900">
+                              {order.paymentMethod === 'cod' ? 'Cash on Delivery' : 'Online'}
+                            </span>
+                          </div>
                           <div className="flex items-center justify-between mb-2">
                             <span className="text-surface-600">Status</span>
                             <span
