@@ -1,4 +1,4 @@
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import {
   Search,
   ShoppingCart,
@@ -19,6 +19,8 @@ export function Navbar() {
   const { user, isAuthenticated, logout } = useAuth();
   const { totalItems } = useCart();
   const navigate = useNavigate();
+  const location = useLocation();
+const isStorefront = location.pathname.startsWith('/shop/');
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -87,20 +89,22 @@ export function Navbar() {
           </Link>
 
           {/* Search Bar */}
-          <form onSubmit={handleSearch} className="hidden md:flex flex-1 max-w-xl">
-            <div className="relative w-full">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-surface-400" />
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search products, brands, categories..."
-                className="w-full pl-10 pr-4 py-2.5 bg-surface-50 border border-surface-200 rounded-lg text-sm
-                  placeholder:text-surface-400 focus:outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-100
-                  transition-all"
-              />
-            </div>
-          </form>
+          {!isStorefront && (
+            <form onSubmit={handleSearch} className="hidden md:flex flex-1 max-w-xl">
+              <div className="relative w-full">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-surface-400" />
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Search products, brands, categories..."
+                  className="w-full pl-10 pr-4 py-2.5 bg-surface-50 border border-surface-200 rounded-lg text-sm
+                    placeholder:text-surface-400 focus:outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-100
+                    transition-all"
+                />
+              </div>
+            </form>
+          )}
 
           {/* Right actions */}
           <div className="flex items-center gap-2">
@@ -207,7 +211,7 @@ export function Navbar() {
         </div>
 
         {/* Category nav (desktop) — real categories from backend */}
-        {categories.length > 0 && (
+        {!isStorefront && categories.length > 0 && (
           <div className="hidden md:flex items-center gap-6 pb-2 text-sm overflow-x-auto">
             {categories.map((cat) => (
               <Link
@@ -226,8 +230,8 @@ export function Navbar() {
       {mobileMenuOpen && (
         <div className="md:hidden border-t border-surface-200 bg-white">
           <div className="p-4 space-y-3">
-            {/* Mobile search */}
-            <form onSubmit={handleSearch}>
+          {!isStorefront && (
+              <form onSubmit={handleSearch}>
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-surface-400" />
                 <input
@@ -238,10 +242,9 @@ export function Navbar() {
                   className="w-full pl-10 pr-4 py-2.5 bg-surface-50 border border-surface-200 rounded-lg text-sm focus:outline-none focus:border-primary-500"
                 />
               </div>
-            </form>
-
-            {/* Mobile categories */}
-            {categories.length > 0 && (
+            </form> )}
+                                {/* Mobile categories */}
+            {!isStorefront && categories.length > 0 && (
               <div className="space-y-1">
                 {categories.map((cat) => (
                   <Link
@@ -261,3 +264,4 @@ export function Navbar() {
     </nav>
   );
 }
+    
