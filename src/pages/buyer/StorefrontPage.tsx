@@ -10,7 +10,6 @@ import {
   type Product,
 } from '../../lib/api';
 
-type Subcategory = { _id: string; name: string; slug: string };
 
 type CategoryWithChildren = Category & {
   children?: Category[];
@@ -24,7 +23,6 @@ export const StorefrontPage = () => {
 
   const [data, setData] = useState<CatalogResponse | null>(null);
   const [categories, setCategories] = useState<CategoryWithChildren[]>([]);
-  const [subcategories, setSubcategories] = useState<Subcategory[]>([]);
   const [filteredProducts, setFilteredProducts] = useState<Product[] | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -69,21 +67,17 @@ export const StorefrontPage = () => {
   // Load filtered products when category changes
   useEffect(() => {
     const loadFiltered = async () => {
-      if (!companyId || !categorySlug) {
-        setFilteredProducts(null);
-        setSubcategories([]);
-        return;
-      }
+        if (!companyId || !categorySlug) {
+            setFilteredProducts(null);
+            return;
+          }
 
       // Always use recursive mode (?all=true) — clicking a parent shows all its products
       const result = await fetchProductsByCompanyCategory(companyId, categorySlug, true);
-
       if (result && result.ok) {
         setFilteredProducts(result.products);
-        setSubcategories(result.subcategories);
       } else {
         setFilteredProducts([]);
-        setSubcategories([]);
       }
     };
 

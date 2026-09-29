@@ -569,17 +569,22 @@ export const fetchSellerProducts = async (): Promise<Product[]> => {
   };
   // ---------- Seller Categories ----------
 
-export const fetchSellerCategories = async (): Promise<Category[]> => {
-  try {
-    const res = await authFetch(`${API_BASE}/categories/me`);
-    if (!res.ok) return [];
-    const data = await res.json();
-    return data.categories ?? [];
-  } catch (error) {
-    console.error('fetchSellerCategories error:', error);
-    return [];
-  }
-};
+  export type CategoryTreeNode = Category & {
+    productCount?: number;
+    children: CategoryTreeNode[];
+  };
+  
+  export const fetchSellerCategories = async (): Promise<CategoryTreeNode[]> => {
+    try {
+      const res = await authFetch(`${API_BASE}/categories/me`);
+      if (!res.ok) return [];
+      const data = await res.json();
+      return data.categories ?? [];
+    } catch (error) {
+      console.error('fetchSellerCategories error:', error);
+      return [];
+    }
+  };
 
 // ---------- Seller Product Creation ----------
 
@@ -682,23 +687,24 @@ export const fetchSellerOrderItems = async (
   };
   // ---------- Seller Category CRUD ----------
 
-export const createSellerCategory = async (
-  name: string
-): Promise<Category | null> => {
-  try {
-    const res = await authFetch(`${API_BASE}/categories`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name }),
-    });
-    if (!res.ok) return null;
-    const data = await res.json();
-    return data.category ?? null;
-  } catch (error) {
-    console.error('createSellerCategory error:', error);
-    return null;
-  }
-};
+  export const createSellerCategory = async (
+    name: string,
+    parentId?: string | null
+  ): Promise<Category | null> => {
+    try {
+      const res = await authFetch(`${API_BASE}/categories`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, parentId: parentId ?? null }),
+      });
+      if (!res.ok) return null;
+      const data = await res.json();
+      return data.category ?? null;
+    } catch (error) {
+      console.error('createSellerCategory error:', error);
+      return null;
+    }
+  };
 
 export const updateSellerCategory = async (
   categoryId: string,
