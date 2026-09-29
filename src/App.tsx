@@ -31,6 +31,7 @@ import { SellerOrders } from './pages/seller/Orders';
 import { SellerPayments } from './pages/seller/Payments';
 import { SellerSettings } from './pages/seller/Settings';
 import { SellerCategories } from './pages/seller/Categories';
+import { ProductsBulkUpload } from './pages/seller/ProductsBulkUpload';
 
 // Admin Pages
 import { AdminOverview } from './pages/admin/Overview';
@@ -89,6 +90,7 @@ function App() {
             >
               <Route index element={<SellerOverview />} />
               <Route path="products" element={<SellerProducts />} />
+              <Route path="products/bulk" element={<ProductsBulkUpload />} />
               <Route path="categories" element={<SellerCategories />} />
               <Route path="orders" element={<SellerOrders />} />
               <Route path="payments" element={<SellerPayments />} />

@@ -1,0 +1,6 @@
+name,description,basePrice,category,sku,size,color,price,stock,imageUrl
+Navy Blue Polo,Soft cotton polo t-shirt,599,Tops,POLO-NAVY-S,S,Navy,599,30,https://picsum.photos/seed/polo1/600
+Navy Blue Polo,Soft cotton polo t-shirt,599,Tops,POLO-NAVY-M,M,Navy,599,40,https://picsum.photos/seed/polo1/600
+Navy Blue Polo,Soft cotton polo t-shirt,599,Tops,POLO-NAVY-L,L,Navy,599,25,https://picsum.photos/seed/polo1/600
+Striped Shirt,Weekend casual shirt,899,Tops,SHIRT-STRIPE-M,M,Blue,899,20,https://picsum.photos/seed/shirt1/600
+Striped Shirt,Weekend casual shirt,899,Tops,SHIRT-STRIPE-L,L,Blue,899,25,https://picsum.photos/seed/shirt1/600

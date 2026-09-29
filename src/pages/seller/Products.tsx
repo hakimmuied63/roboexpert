@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   Plus,
   Search,
@@ -6,6 +7,7 @@ import {
   Trash2,
   LayoutGrid,
   List,
+  Upload,
 } from 'lucide-react';
 import {
   fetchSellerProducts,
@@ -17,6 +19,7 @@ import { ProductForm } from './ProductForm';
 import toast from 'react-hot-toast';
 
 export function SellerProducts() {
+  const navigate = useNavigate();
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('list');
@@ -95,9 +98,18 @@ export function SellerProducts() {
             Manage your product listings ({products.length} total)
           </p>
         </div>
-        <Button icon={<Plus className="w-4 h-4" />} onClick={handleAdd}>
-          Add Product
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            icon={<Upload className="w-4 h-4" />}
+            onClick={() => navigate('/seller/products/bulk')}
+          >
+            Bulk Upload
+          </Button>
+          <Button icon={<Plus className="w-4 h-4" />} onClick={handleAdd}>
+            Add Product
+          </Button>
+        </div>
       </div>
 
       {/* Toolbar */}

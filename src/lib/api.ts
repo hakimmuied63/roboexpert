@@ -251,18 +251,27 @@ export type CompanyCategoryProductsResponse = {
     _id: string;
     name: string;
     slug: string;
+    parentId?: string | null;
   };
+  subcategories: Array<{
+    _id: string;
+    name: string;
+    slug: string;
+  }>;
+  showAll: boolean;
   products: Product[];
 };
 
 export const fetchProductsByCompanyCategory = async (
   companyId: string,
-  categorySlug: string
+  categorySlug: string,
+  showAll: boolean = false
 ): Promise<CompanyCategoryProductsResponse | null> => {
   try {
-    const res = await fetch(
-      `${API_BASE}/catalog/companies/${companyId}/categories/${categorySlug}/products`
-    );
+    const url = showAll
+      ? `${API_BASE}/catalog/companies/${companyId}/categories/${categorySlug}/products?all=true`
+      : `${API_BASE}/catalog/companies/${companyId}/categories/${categorySlug}/products`;
+    const res = await fetch(url);
     if (!res.ok) return null;
     return res.json();
   } catch (error) {
@@ -964,5 +973,67 @@ export const fetchMarketplaceCategories = async (): Promise<Category[]> => {
   } catch (error) {
     console.error('fetchMarketplaceCategories error:', error);
     return [];
+  }
+};
+// ---------- Bulk Product Upload ----------
+
+export type BulkUploadRow = {
+  name: string;
+  description?: string;
+  basePrice: number;
+  category?: string;
+  sku: string;
+  size?: string;
+  color?: string;
+  price: number;
+  stock: number;
+  imageUrl?: string;
+};
+
+export type BulkUploadSummary = {
+  rowsReceived: number;
+  rowsValid: number;
+  rowsFailed: number;
+  productsCreated: number;
+  variantsCreated: number;
+};
+
+export type BulkUploadResponse =
+  | {
+      success: true;
+      summary: BulkUploadSummary;
+      products: Array<{ _id: string; name: string; variantCount: number }>;
+      errors: Array<{ row: number; error: string }>;
+    }
+  | { success: false; error: string };
+
+export const bulkCreateProducts = async (
+  rows: BulkUploadRow[]
+): Promise<BulkUploadResponse> => {
+  try {
+    const res = await authFetch(`${API_BASE}/products/bulk`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ rows }),
+    });
+
+    const data = await res.json().catch(() => null);
+
+    if (!res.ok || !data || !data.ok) {
+      return {
+        success: false,
+        error: data?.error ?? 'Bulk upload failed',
+      };
+    }
+
+    return {
+      success: true,
+      summary: data.summary,
+      products: data.products,
+      errors: data.errors,
+    };
+  } catch (error) {
+    console.error('bulkCreateProducts error:', error);
+    return { success: false, error: 'Network error — please try again' };
   }
 };
