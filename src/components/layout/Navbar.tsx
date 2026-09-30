@@ -10,22 +10,36 @@ import {
   Store,
   ChevronDown,
 } from 'lucide-react';
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useCart } from '../../contexts/CartContext';
 import { fetchMarketplaceCategories, type Category } from '../../lib/api';
+import { useDebounce } from '../../hooks/useDebounce';
+import { SearchDropdown } from '../search/SearchDropdown';
+import { searchProducts as searchProductsApi, type Product } from '../../lib/api';
+
+const RECENT_SEARCHES_KEY = 'roboexpert_recent_searches';
 
 export function Navbar() {
   const { user, isAuthenticated, logout } = useAuth();
   const { totalItems } = useCart();
   const navigate = useNavigate();
   const location = useLocation();
-const isStorefront = location.pathname.startsWith('/shop/');
+  const isStorefront = location.pathname.startsWith('/shop/');
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [categories, setCategories] = useState<Category[]>([]);
   const userMenuRef = useRef<HTMLDivElement>(null);
+
+  // Live search state
+  const [searchResults, setSearchResults] = useState<Product[]>([]);
+  const [searchLoading, setSearchLoading] = useState(false);
+  const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [recentSearches, setRecentSearches] = useState<string[]>([]);
+  const searchContainerRef = useRef<HTMLDivElement>(null);
+
+  const debouncedQuery = useDebounce(searchQuery, 400);
 
   // Close user menu on outside click
   useEffect(() => {
@@ -38,7 +52,21 @@ const isStorefront = location.pathname.startsWith('/shop/');
     return () => document.removeEventListener('mousedown', handleClick);
   }, []);
 
-  // Load real marketplace categories
+  // Close search dropdown on outside click
+  useEffect(() => {
+    function handleClick(e: MouseEvent) {
+      if (
+        searchContainerRef.current &&
+        !searchContainerRef.current.contains(e.target as Node)
+      ) {
+        setDropdownOpen(false);
+      }
+    }
+    document.addEventListener('mousedown', handleClick);
+    return () => document.removeEventListener('mousedown', handleClick);
+  }, []);
+
+  // Load marketplace categories
   useEffect(() => {
     async function load() {
       const cats = await fetchMarketplaceCategories();
@@ -47,12 +75,86 @@ const isStorefront = location.pathname.startsWith('/shop/');
     load();
   }, []);
 
+  // Load recent searches from localStorage
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem(RECENT_SEARCHES_KEY);
+      if (stored) setRecentSearches(JSON.parse(stored));
+    } catch {
+      // ignore
+    }
+  }, []);
+
+  // Fetch live search results when debounced query changes
+  useEffect(() => {
+    const trimmed = debouncedQuery.trim();
+    if (trimmed.length < 2) {
+      setSearchResults([]);
+      setSearchLoading(false);
+      return;
+    }
+
+    let cancelled = false;
+    setSearchLoading(true);
+
+    searchProductsApi(trimmed)
+      .then((res) => {
+        if (!cancelled) {
+          setSearchResults(res.slice(0, 6));
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setSearchLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [debouncedQuery]);
+
+  const addRecentSearch = useCallback((term: string) => {
+    const trimmed = term.trim();
+    if (!trimmed) return;
+    setRecentSearches((prev) => {
+      const filtered = prev.filter(
+        (t) => t.toLowerCase() !== trimmed.toLowerCase()
+      );
+      const next = [trimmed, ...filtered].slice(0, 5);
+      localStorage.setItem(RECENT_SEARCHES_KEY, JSON.stringify(next));
+      return next;
+    });
+  }, []);
+
+  const clearRecentSearches = useCallback(() => {
+    setRecentSearches([]);
+    localStorage.removeItem(RECENT_SEARCHES_KEY);
+  }, []);
+
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
-    if (searchQuery.trim()) {
-      navigate(`/search?q=${encodeURIComponent(searchQuery.trim())}`);
+    const trimmed = searchQuery.trim();
+    if (trimmed) {
+      addRecentSearch(trimmed);
+      setDropdownOpen(false);
+      navigate(`/search?q=${encodeURIComponent(trimmed)}`);
       setSearchQuery('');
     }
+  };
+
+  const handleSeeAll = () => {
+    const trimmed = searchQuery.trim();
+    if (trimmed) {
+      addRecentSearch(trimmed);
+      setDropdownOpen(false);
+      navigate(`/search?q=${encodeURIComponent(trimmed)}`);
+      setSearchQuery('');
+    }
+  };
+
+  const handlePickRecent = (term: string) => {
+    setSearchQuery(term);
+    addRecentSearch(term);
+    setDropdownOpen(true);
   };
 
   const handleLogout = () => {
@@ -88,20 +190,36 @@ const isStorefront = location.pathname.startsWith('/shop/');
             </span>
           </Link>
 
-          {/* Search Bar */}
+          {/* Search Bar with live dropdown */}
           {!isStorefront && (
             <form onSubmit={handleSearch} className="hidden md:flex flex-1 max-w-xl">
-              <div className="relative w-full">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-surface-400" />
+              <div className="relative w-full" ref={searchContainerRef}>
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-surface-400 z-10" />
                 <input
                   type="text"
                   value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
+                  onChange={(e) => {
+                    setSearchQuery(e.target.value);
+                    setDropdownOpen(true);
+                  }}
+                  onFocus={() => setDropdownOpen(true)}
                   placeholder="Search products, brands, categories..."
                   className="w-full pl-10 pr-4 py-2.5 bg-surface-50 border border-surface-200 rounded-lg text-sm
                     placeholder:text-surface-400 focus:outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-100
                     transition-all"
                 />
+                {dropdownOpen && (
+                  <SearchDropdown
+                    query={searchQuery}
+                    results={searchResults}
+                    loading={searchLoading}
+                    recentSearches={recentSearches}
+                    onPickRecent={handlePickRecent}
+                    onClearRecent={clearRecentSearches}
+                    onSeeAll={handleSeeAll}
+                    onClose={() => setDropdownOpen(false)}
+                  />
+                )}
               </div>
             </form>
           )}
@@ -230,20 +348,22 @@ const isStorefront = location.pathname.startsWith('/shop/');
       {mobileMenuOpen && (
         <div className="md:hidden border-t border-surface-200 bg-white">
           <div className="p-4 space-y-3">
-          {!isStorefront && (
+            {!isStorefront && (
               <form onSubmit={handleSearch}>
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-surface-400" />
-                <input
-                  type="text"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="Search products..."
-                  className="w-full pl-10 pr-4 py-2.5 bg-surface-50 border border-surface-200 rounded-lg text-sm focus:outline-none focus:border-primary-500"
-                />
-              </div>
-            </form> )}
-                                {/* Mobile categories */}
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-surface-400" />
+                  <input
+                    type="text"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    placeholder="Search products..."
+                    className="w-full pl-10 pr-4 py-2.5 bg-surface-50 border border-surface-200 rounded-lg text-sm focus:outline-none focus:border-primary-500"
+                  />
+                </div>
+              </form>
+            )}
+
+            {/* Mobile categories */}
             {!isStorefront && categories.length > 0 && (
               <div className="space-y-1">
                 {categories.map((cat) => (
@@ -264,4 +384,3 @@ const isStorefront = location.pathname.startsWith('/shop/');
     </nav>
   );
 }
-    

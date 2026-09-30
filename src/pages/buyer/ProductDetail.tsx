@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { Shield, Truck, Heart, Share2, ChevronRight, ShoppingCart } from 'lucide-react';
+import { Shield, Truck, Share2, ChevronRight, ShoppingCart } from 'lucide-react';
 import { Button, Badge, LoadingSpinner } from '../../components/ui';
 import { useCart } from '../../contexts/CartContext';
+import { WishlistButton } from '../../components/wishlist/WishlistButton';
 import {
   fetchProductById,
   type Product,
@@ -176,7 +177,7 @@ export function ProductDetail() {
                           : 'bg-white text-surface-700 border-surface-300 hover:border-primary-500'
                       }`}
                     >
-                     {Object.values(v.attributes).join(' / ')}
+                      {Object.values(v.attributes).join(' / ')}
                       {outOfStock && ' (out)'}
                     </button>
                   );
@@ -216,9 +217,7 @@ export function ProductDetail() {
               </Button>
             </div>
             <div className="flex items-center gap-4">
-              <Button variant="outline" icon={<Heart className="w-4 h-4" />} className="flex-1">
-                Save for later
-              </Button>
+              <WishlistButton productId={product._id} showLabel className="flex-1" />
               <Button variant="outline" icon={<Share2 className="w-4 h-4" />} className="flex-1">
                 Share
               </Button>

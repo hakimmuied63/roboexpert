@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
 import { Search as SearchIcon } from 'lucide-react';
 import { Button, LoadingSpinner, EmptyState } from '../../components/ui';
+import { WishlistButton } from '../../components/wishlist/WishlistButton';
 import { searchProducts, type Product } from '../../lib/api';
 
 export function Search() {
@@ -28,8 +29,6 @@ export function Search() {
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-8 space-y-8">
-    
-
       <div className="flex items-center justify-between">
         <h2 className="text-xl font-bold text-surface-900">
           {query ? `Search results for "${query}"` : 'Start typing to search'}
@@ -74,6 +73,9 @@ export function Search() {
                       'https://via.placeholder.com/400?text=No+Image';
                   }}
                 />
+                <div className="absolute top-2 right-2 z-10">
+                  <WishlistButton productId={product._id} size="sm" />
+                </div>
               </div>
               <div className="p-4 flex flex-col flex-1">
                 {product.company && (

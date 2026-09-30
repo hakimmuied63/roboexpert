@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { ChevronLeft, ChevronRight, Package, Truck, Store } from 'lucide-react';
 import { LoadingSpinner } from '../../components/ui';
+import { WishlistButton } from '../../components/wishlist/WishlistButton';
 import {
   fetchAllProducts,
   fetchAllCompanies,
@@ -50,6 +51,9 @@ function ProductTile({ product }: { product: Product }) {
               'https://via.placeholder.com/400?text=No+Image';
           }}
         />
+        <div className="absolute top-2 right-2 z-10">
+          <WishlistButton productId={product._id} size="sm" />
+        </div>
       </div>
       <div className="p-3 flex flex-col flex-1 gap-1.5">
         <h3 className="text-sm font-medium text-surface-900 line-clamp-2 group-hover:text-primary-600 transition-colors leading-snug">
@@ -133,8 +137,6 @@ export function Home() {
           </button>
         </div>
       </div>
-
-    
 
       {/* All products */}
       <section className="max-w-7xl mx-auto px-4 pt-10">

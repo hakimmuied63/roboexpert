@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { Filter } from 'lucide-react';
 import { LoadingSpinner, EmptyState, Button } from '../../components/ui';
+import { WishlistButton } from '../../components/wishlist/WishlistButton';
 import { fetchProductsByCategory, type Product } from '../../lib/api';
 
 type SortOption = 'newest' | 'price-asc' | 'price-desc';
@@ -35,7 +36,6 @@ export function CategoryPage() {
     if (sortBy === 'price-asc') copy.sort((a, b) => a.basePrice - b.basePrice);
     if (sortBy === 'price-desc') copy.sort((a, b) => b.basePrice - a.basePrice);
     if (sortBy === 'newest') {
-      // Products come from backend already sorted by createdAt desc, but sort explicitly
       copy.sort((a, b) => new Date(b['createdAt'] as any).getTime() - new Date(a['createdAt'] as any).getTime());
     }
     return copy;
@@ -115,6 +115,9 @@ export function CategoryPage() {
                       'https://via.placeholder.com/400?text=No+Image';
                   }}
                 />
+                <div className="absolute top-2 right-2 z-10">
+                  <WishlistButton productId={product._id} size="sm" />
+                </div>
               </div>
               <div className="p-4 flex flex-col flex-1">
                 {product.company && (

@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { CartProvider } from './contexts/CartContext';
+import { WishlistProvider } from './contexts/WishlistContext';
 import { ToastProvider } from './components/ui';
 import { AdminUsers } from './pages/admin/Users';
 // Layouts
@@ -13,6 +14,8 @@ import { Login } from './pages/auth/Login';
 import { BuyerSignUp } from './pages/auth/BuyerSignUp';
 import { SellerSignUp } from './pages/auth/SellerSignUp';
 import { AdminLogin } from './pages/auth/AdminLogin';
+import { ForgotPassword } from './pages/auth/ForgotPassword';
+import { ResetPassword } from './pages/auth/ResetPassword';
 
 // Buyer Pages
 import { Home } from './pages/buyer/Home';
@@ -21,6 +24,7 @@ import { Search } from './pages/buyer/Search';
 import { ProductDetail } from './pages/buyer/ProductDetail';
 import { Cart } from './pages/buyer/Cart';
 import { Checkout } from './pages/buyer/Checkout';
+import { Wishlist } from './pages/buyer/Wishlist';
 import { SellerProfile } from './pages/buyer/SellerProfile';
 import { StorefrontPage } from './pages/buyer/StorefrontPage';
 
@@ -58,26 +62,30 @@ function App() {
   return (
     <BrowserRouter>
       <AuthProvider>
-        <CartProvider>
-          <ToastProvider />
-          <Routes>
-            {/* Auth Routes */}
-            <Route path="/login" element={<Login />} />
+    <CartProvider>
+      <WishlistProvider>
+        <ToastProvider />
+        <Routes>
+                        {/* Auth Routes */}
+                        <Route path="/login" element={<Login />} />
             <Route path="/signup" element={<BuyerSignUp />} />
             <Route path="/seller/signup" element={<SellerSignUp />} />
             <Route path="/admin/login" element={<AdminLogin />} />
+            <Route path="/forgot-password" element={<ForgotPassword />} />
+            <Route path="/reset-password" element={<ResetPassword />} />
 
             {/* Buyer Routes (Storefront) */}
-              <Route path="/" element={<BuyerLayout />}>
+            <Route path="/" element={<BuyerLayout />}>
               <Route index element={<Home />} />
               <Route path="category/:slug" element={<CategoryPage />} />
               <Route path="search" element={<Search />} />
               <Route path="product/:id" element={<ProductDetail />} />
               <Route path="cart" element={<Cart />} />
+              <Route path="wishlist" element={<Wishlist />} />
               <Route path="seller-profile/:id" element={<SellerProfile />} />
-              <Route path="shop/:companyId" element={<StorefrontPage />} />                      {/* Guest checkout — no auth required */}
-               <Route path="checkout" element={<Checkout />} />
-               </Route>
+              <Route path="shop/:companyId" element={<StorefrontPage />} />
+              <Route path="checkout" element={<Checkout />} />
+            </Route>
 
             {/* Seller Routes (Dashboard) */}
             <Route 
@@ -115,7 +123,8 @@ function App() {
 
             {/* Catch-all */}
             <Route path="*" element={<Navigate to="/" replace />} />
-          </Routes>
+            </Routes>
+          </WishlistProvider>
         </CartProvider>
       </AuthProvider>
     </BrowserRouter>

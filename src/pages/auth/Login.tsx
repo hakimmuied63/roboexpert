@@ -91,10 +91,18 @@ export function Login() {
                 autoComplete="current-password"
                 required
               />
-
               <Button type="submit" fullWidth size="lg" loading={loading}>
                 Sign in
               </Button>
+
+              <div className="text-center">
+                <Link
+                  to="/forgot-password"
+                  className="text-sm text-primary-600 hover:text-primary-700 font-medium"
+                >
+                  Forgot your password?
+                </Link>
+              </div>
             </form>
           </div>
 

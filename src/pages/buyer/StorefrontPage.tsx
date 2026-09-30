@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link, useParams, useSearchParams } from 'react-router-dom';
 import { ChevronRight } from 'lucide-react';
+import { WishlistButton } from '../../components/wishlist/WishlistButton';
 import {
   fetchCompanyProducts,
   fetchCompanyCategories,
@@ -9,7 +10,6 @@ import {
   type Category,
   type Product,
 } from '../../lib/api';
-
 
 type CategoryWithChildren = Category & {
   children?: Category[];
@@ -33,7 +33,6 @@ export const StorefrontPage = () => {
     setSearchInput(searchQuery);
   }, [searchQuery]);
 
-  // Load company + products + categories
   useEffect(() => {
     const load = async () => {
       if (!companyId) {
@@ -64,15 +63,13 @@ export const StorefrontPage = () => {
     load();
   }, [companyId]);
 
-  // Load filtered products when category changes
   useEffect(() => {
     const loadFiltered = async () => {
-        if (!companyId || !categorySlug) {
-            setFilteredProducts(null);
-            return;
-          }
+      if (!companyId || !categorySlug) {
+        setFilteredProducts(null);
+        return;
+      }
 
-      // Always use recursive mode (?all=true) — clicking a parent shows all its products
       const result = await fetchProductsByCompanyCategory(companyId, categorySlug, true);
       if (result && result.ok) {
         setFilteredProducts(result.products);
@@ -136,12 +133,10 @@ export const StorefrontPage = () => {
     );
   }
 
-  // Find current category (parent or child)
   const currentCategory = categorySlug
     ? findCategoryBySlug(categories, categorySlug)
     : null;
 
-  // Breadcrumbs
   const breadcrumbs: { name: string; slug: string }[] = [];
   if (currentCategory) {
     if (currentCategory.parentId) {
@@ -200,8 +195,7 @@ export const StorefrontPage = () => {
 
       {/* Category nav with hover dropdowns */}
       <div className="border-b border-gray-200 mb-6 relative z-20">
-      <div className="flex items-center gap-1 pb-2 -mb-px">
-          {/* "All" chip */}
+        <div className="flex items-center gap-1 pb-2 -mb-px">
           <button
             onClick={() => handleCategoryClick(null)}
             className={`relative px-4 py-2 text-sm font-medium whitespace-nowrap transition-colors border-b-2 ${
@@ -213,12 +207,12 @@ export const StorefrontPage = () => {
             All
           </button>
 
-          {/* Parent categories with hover dropdowns */}
           {categories.map((cat) => {
             const hasChildren = cat.children && cat.children.length > 0;
             const isActive =
               categorySlug === cat.slug ||
-              (currentCategory?.parentId && findCategoryById(categories, currentCategory.parentId)?.slug === cat.slug);
+              (currentCategory?.parentId &&
+                findCategoryById(categories, currentCategory.parentId)?.slug === cat.slug);
 
             return (
               <div
@@ -241,7 +235,6 @@ export const StorefrontPage = () => {
                   )}
                 </button>
 
-                {/* Hover dropdown with subcategories */}
                 {hasChildren && hoveredCategory === cat._id && (
                   <div
                     className="absolute top-full left-0 mt-0 bg-white border border-gray-200 rounded-md shadow-lg py-1 z-50 min-w-[180px]"
@@ -319,7 +312,7 @@ export const StorefrontPage = () => {
               to={`/product/${product._id}`}
               className="group bg-white border border-gray-200 rounded-md overflow-hidden hover:shadow-md transition-all"
             >
-              <div className="aspect-square bg-gray-100 overflow-hidden">
+              <div className="relative aspect-square bg-gray-100 overflow-hidden">
                 <img
                   src={product.images[0] ?? 'https://via.placeholder.com/400'}
                   alt={product.name}
@@ -329,6 +322,9 @@ export const StorefrontPage = () => {
                       'https://via.placeholder.com/400?text=No+Image';
                   }}
                 />
+                <div className="absolute top-2 right-2 z-10">
+                  <WishlistButton productId={product._id} size="sm" />
+                </div>
               </div>
               <div className="p-3">
                 <h3 className="text-sm font-medium text-gray-900 mb-1 line-clamp-2 min-h-[2.5em]">
@@ -345,8 +341,6 @@ export const StorefrontPage = () => {
     </div>
   );
 };
-
-// ---------- Helpers ----------
 
 function findCategoryBySlug(
   categories: CategoryWithChildren[],
