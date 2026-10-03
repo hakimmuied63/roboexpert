@@ -208,6 +208,63 @@ export type PlaceOrderResponse = {
   message: string;
 };
 
+// ---------- Razorpay Payment ----------
+
+export type CreatePaymentOrderResponse = {
+  ok: boolean;
+  razorpayOrderId?: string;
+  keyId?: string;
+  amount?: number;
+  currency?: string;
+  orderNumber?: string;
+  error?: string;
+};
+
+export const createPaymentOrder = async (
+  orderId: string
+): Promise<CreatePaymentOrderResponse | null> => {
+  try {
+    const res = await fetch(`${API_BASE}/payments/create-order`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ orderId }),
+    });
+    const data = await res.json().catch(() => null);
+    if (!res.ok) {
+      console.error('createPaymentOrder error:', data);
+      return null;
+    }
+    return data;
+  } catch (error) {
+    console.error('createPaymentOrder error:', error);
+    return null;
+  }
+};
+
+export const verifyPayment = async (payload: {
+  orderId: string;
+  razorpayOrderId: string;
+  razorpayPaymentId: string;
+  razorpaySignature: string;
+}): Promise<{ ok: boolean; message?: string; error?: string } | null> => {
+  try {
+    const res = await fetch(`${API_BASE}/payments/verify`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    const data = await res.json().catch(() => null);
+    if (!res.ok) {
+      console.error('verifyPayment error:', data);
+      return null;
+    }
+    return data;
+  } catch (error) {
+    console.error('verifyPayment error:', error);
+    return null;
+  }
+};
+
 export const placeOrder = async (
   payload: PlaceOrderPayload
 ): Promise<PlaceOrderResponse | null> => {
@@ -1041,5 +1098,136 @@ export const bulkCreateProducts = async (
   } catch (error) {
     console.error('bulkCreateProducts error:', error);
     return { success: false, error: 'Network error — please try again' };
+  }
+};
+// ---------- Order Tracking / Cancel / Return ----------
+
+export type TrackedOrder = {
+  _id: string;
+  companyId: string;
+  orderNumber: string;
+  buyer: { name: string; email: string; phone: string };
+  shippingAddress: {
+    line1: string;
+    line2?: string;
+    city: string;
+    state: string;
+    pincode: string;
+    country: string;
+  };
+  subtotal: number;
+  shippingFee: number;
+  total: number;
+  status: string;
+  paymentMethod: 'cod' | 'online';
+  paymentStatus: string;
+  notes?: string;
+  cancelledAt?: string | null;
+  cancellationReason?: string | null;
+  cancellationNote?: string | null;
+  returnStatus?: 'requested' | 'approved' | 'rejected' | 'completed' | null;
+  returnReason?: string | null;
+  returnNote?: string | null;
+  returnRequestedAt?: string | null;
+  returnResolvedAt?: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type TrackedOrderItem = {
+  _id: string;
+  orderId: string;
+  companyId: string;
+  productId: string;
+  variantId: string;
+  quantity: number;
+  unitPrice: number;
+  lineTotal: number;
+  productSnapshot: {
+    name: string;
+    image?: string;
+    variantAttributes: Record<string, string>;
+    sku: string;
+  };
+  createdAt: string;
+};
+
+export type TrackOrderResponse = {
+  ok: boolean;
+  order: TrackedOrder;
+  items: TrackedOrderItem[];
+};
+
+export const trackOrder = async (
+  orderNumber: string,
+  email: string
+): Promise<{ success: true; data: TrackOrderResponse } | { success: false; error: string }> => {
+  try {
+    const res = await fetch(
+      `${API_BASE}/orders/track/${encodeURIComponent(orderNumber)}?email=${encodeURIComponent(email)}`
+    );
+    const data = await res.json().catch(() => null);
+
+    if (!res.ok || !data || !data.ok) {
+      return { success: false, error: data?.error ?? 'Order not found' };
+    }
+    return { success: true, data };
+  } catch (error) {
+    console.error('trackOrder error:', error);
+    return { success: false, error: 'Network error' };
+  }
+};
+
+export const cancelOrder = async (
+  orderNumber: string,
+  email: string,
+  reason: string,
+  note?: string
+): Promise<{ success: true; data: TrackOrderResponse } | { success: false; error: string }> => {
+  try {
+    const res = await fetch(
+      `${API_BASE}/orders/track/${encodeURIComponent(orderNumber)}/cancel`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, reason, note }),
+      }
+    );
+    const data = await res.json().catch(() => null);
+
+    if (!res.ok || !data || !data.ok) {
+      return { success: false, error: data?.error ?? 'Could not cancel order' };
+    }
+    return { success: true, data: { ok: true, order: data.order, items: [] } };
+  } catch (error) {
+    console.error('cancelOrder error:', error);
+    return { success: false, error: 'Network error' };
+  }
+};
+
+export const requestReturn = async (
+  orderNumber: string,
+  email: string,
+  reason: string,
+  note?: string
+): Promise<{ success: true; data: TrackOrderResponse } | { success: false; error: string }> => {
+  try {
+    const res = await fetch(
+      `${API_BASE}/orders/track/${encodeURIComponent(orderNumber)}/return`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, reason, note }),
+      }
+    );
+    const data = await res.json().catch(() => null);
+
+    if (!res.ok || !data || !data.ok) {
+      return { success: false, error: data?.error ?? 'Could not request return' };
+    }
+    return { success: true, data: { ok: true, order: data.order, items: [] } };
+  } catch (error) {
+    console.error('requestReturn error:', error);
+    return { success: false, error: 'Network error' };
   }
 };

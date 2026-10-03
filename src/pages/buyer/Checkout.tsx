@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useCart } from '../../contexts/CartContext';
 import { Button, Input, Select } from '../../components/ui';
-import { placeOrder } from '../../lib/api';
+import { placeOrder, createPaymentOrder, verifyPayment } from '../../lib/api';
 import toast from 'react-hot-toast';
 import {
   CheckCircle2,
@@ -11,6 +11,12 @@ import {
   CreditCard,
   Banknote,
 } from 'lucide-react';
+
+declare global {
+  interface Window {
+    Razorpay: any;
+  }
+}
 
 export function Checkout() {
   const { items, totalPrice, clearCart } = useCart();
@@ -98,11 +104,145 @@ export function Checkout() {
       }
 
       const orderCount = result.orders.length;
-      toast.success(
-        orderCount === 1
-          ? `Order placed! Order #${result.orders[0].order.orderNumber}`
-          : `${orderCount} orders placed!`
-      );
+      const firstOrderNumber = result.orders[0].order.orderNumber;
+
+      // If online payment -> open Razorpay modal
+      if (paymentMethod === 'online') {
+        if (orderCount > 1) {
+          toast.error(
+            'Online payment is not available for multi-seller carts yet. Please choose COD or split your order.'
+          );
+          setLoading(false);
+          return;
+        }
+
+        const order = result.orders[0].order;
+
+        const rzpData = await createPaymentOrder(order._id);
+        if (!rzpData || !rzpData.ok || !rzpData.razorpayOrderId || !rzpData.keyId) {
+          toast.error('Could not start payment. Please try again.');
+          setLoading(false);
+          return;
+        }
+
+        const options = {
+          key: rzpData.keyId,
+          amount: (rzpData.amount ?? order.total) * 100,
+          currency: rzpData.currency ?? 'INR',
+          name: 'Roboexpert',
+          description: `Order #${order.orderNumber}`,
+          order_id: rzpData.razorpayOrderId,
+          prefill: {
+            name: form.fullName,
+            email: form.email,
+            contact: form.phone,
+          },
+          theme: {
+            color: '#2563eb',
+          },
+          handler: async (response: {
+            razorpay_payment_id: string;
+            razorpay_order_id: string;
+            razorpay_signature: string;
+          }) => {
+            const verified = await verifyPayment({
+              orderId: order._id,
+              razorpayOrderId: response.razorpay_order_id,
+              razorpayPaymentId: response.razorpay_payment_id,
+              razorpaySignature: response.razorpay_signature,
+            });
+
+            if (!verified || !verified.ok) {
+              toast.error('Payment verification failed. Please contact support.');
+              setLoading(false);
+              return;
+            }
+
+            toast.success(
+              (t) => (
+                <div className="flex flex-col gap-1">
+                  <span className="font-medium">Payment successful!</span>
+                  <span className="text-xs">Order #{order.orderNumber}</span>
+                  <button
+                    onClick={() => {
+                      toast.dismiss(t.id);
+                      navigate(`/track-order?order=${order.orderNumber}`);
+                    }}
+                    className="text-primary-600 hover:text-primary-700 text-xs font-medium text-left underline mt-1"
+                  >
+                    Track this order &rarr;
+                  </button>
+                </div>
+              ),
+              { duration: 6000 }
+            );
+
+            clearCart();
+            navigate('/');
+          },
+          modal: {
+            ondismiss: () => {
+              toast.error(
+                'Payment cancelled. Your order is saved - you can retry payment later.'
+              );
+              setLoading(false);
+            },
+          },
+        };
+
+        if (!window.Razorpay) {
+          toast.error('Payment system failed to load. Please refresh and try again.');
+          setLoading(false);
+          return;
+        }
+
+        const rzp = new window.Razorpay(options);
+        rzp.open();
+        return;
+      }
+
+      // COD path
+      if (orderCount === 1) {
+        toast.success(
+          (t) => (
+            <div className="flex flex-col gap-1">
+              <span className="font-medium">Order placed!</span>
+              <span className="text-xs">#{firstOrderNumber}</span>
+              <button
+                onClick={() => {
+                  toast.dismiss(t.id);
+                  navigate(`/track-order?order=${firstOrderNumber}`);
+                }}
+                className="text-primary-600 hover:text-primary-700 text-xs font-medium text-left underline mt-1"
+              >
+                Track this order &rarr;
+              </button>
+            </div>
+          ),
+          { duration: 6000 }
+        );
+      } else {
+        toast.success(
+          (t) => (
+            <div className="flex flex-col gap-1">
+              <span className="font-medium">{orderCount} orders placed!</span>
+              <span className="text-xs">
+                {result.orders.map((o) => `#${o.order.orderNumber}`).join(', ')}
+              </span>
+              <button
+                onClick={() => {
+                  toast.dismiss(t.id);
+                  navigate(`/track-order?order=${firstOrderNumber}`);
+                }}
+                className="text-primary-600 hover:text-primary-700 text-xs font-medium text-left underline mt-1"
+              >
+                Track your orders &rarr;
+              </button>
+            </div>
+          ),
+          { duration: 8000 }
+        );
+      }
 
       clearCart();
       navigate('/');
@@ -282,7 +422,7 @@ export function Checkout() {
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-semibold text-surface-900">Pay Online</p>
                       <p className="text-xs text-surface-500 mt-0.5">
-                        UPI, Credit Card, Debit Card, Netbanking — secured by Razorpay
+                        UPI, Credit Card, Debit Card, Netbanking - secured by Razorpay
                       </p>
                     </div>
                   </label>
@@ -334,14 +474,14 @@ export function Checkout() {
                   onClick={handlePlaceOrder}
                   className="w-full sm:w-auto px-8"
                 >
-                  Place Order — ₹{total.toLocaleString('en-IN')}
+                  Place Order - ₹ {total.toLocaleString('en-IN')}
                 </Button>
               </div>
             </div>
           )}
         </div>
 
-        {/* Right Column — Order Summary */}
+        {/* Right Column - Order Summary */}
         <div className="w-full lg:w-96 flex-shrink-0">
           <div className="bg-white rounded-2xl border border-surface-200 p-6 sticky top-24">
             <h2 className="text-lg font-bold text-surface-900 mb-6">Order Summary</h2>
@@ -375,7 +515,7 @@ export function Checkout() {
                     <p className="text-xs text-surface-500 mt-1">Sold by {item.companyName}</p>
                   </div>
                   <p className="text-sm font-medium text-surface-900">
-                    ₹{(item.price * item.quantity).toLocaleString('en-IN')}
+                  ₹{(item.price * item.quantity).toLocaleString('en-IN')}
                   </p>
                 </li>
               ))}
@@ -385,7 +525,7 @@ export function Checkout() {
               <div className="flex justify-between text-surface-600">
                 <span>Subtotal</span>
                 <span className="font-medium text-surface-900">
-                  ₹{subtotal.toLocaleString('en-IN')}
+                ₹;{subtotal.toLocaleString('en-IN')}
                 </span>
               </div>
               <div className="flex justify-between text-surface-600">
@@ -394,7 +534,7 @@ export function Checkout() {
                   {shipping === 0 ? (
                     <span className="text-success-600">Free</span>
                   ) : (
-                    `₹${shipping}`
+                    <>₹{shipping}</>
                   )}
                 </span>
               </div>
@@ -404,7 +544,7 @@ export function Checkout() {
               <div className="flex justify-between">
                 <span className="text-base font-bold text-surface-900">Total</span>
                 <span className="text-xl font-bold text-primary-600">
-                  ₹{total.toLocaleString('en-IN')}
+                ₹{total.toLocaleString('en-IN')}
                 </span>
               </div>
             </div>

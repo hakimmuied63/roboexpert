@@ -1,6 +1,7 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef, useMemo } from 'react';
 import { Link, useParams, useSearchParams } from 'react-router-dom';
-import { ChevronRight } from 'lucide-react';
+import { useDebounce } from '../../hooks/useDebounce';
+import { ChevronRight, Clock } from 'lucide-react';
 import { WishlistButton } from '../../components/wishlist/WishlistButton';
 import {
   fetchCompanyProducts,
@@ -28,6 +29,43 @@ export const StorefrontPage = () => {
   const [error, setError] = useState<string | null>(null);
   const [searchInput, setSearchInput] = useState(searchQuery);
   const [hoveredCategory, setHoveredCategory] = useState<string | null>(null);
+  const [recentSearches, setRecentSearches] = useState<string[]>([]);
+  const [dropdownOpen, setDropdownOpen] = useState(false);
+  const searchContainerRef = useRef<HTMLDivElement>(null);
+
+  const debouncedSearchInput = useDebounce(searchInput, 400);
+
+  // localStorage key scoped per seller
+  const recentKey = useMemo(
+    () => (companyId ? `roboexpert_recent_searches_store_${companyId}` : ''),
+    [companyId]
+  );
+
+  // Load recent searches for this store
+  useEffect(() => {
+    if (!recentKey) return;
+    try {
+      const stored = localStorage.getItem(recentKey);
+      if (stored) setRecentSearches(JSON.parse(stored));
+      else setRecentSearches([]);
+    } catch {
+      setRecentSearches([]);
+    }
+  }, [recentKey]);
+
+  // Close dropdown on outside click
+  useEffect(() => {
+    function handleClick(e: MouseEvent) {
+      if (
+        searchContainerRef.current &&
+        !searchContainerRef.current.contains(e.target as Node)
+      ) {
+        setDropdownOpen(false);
+      }
+    }
+    document.addEventListener('mousedown', handleClick);
+    return () => document.removeEventListener('mousedown', handleClick);
+  }, []);
 
   useEffect(() => {
     setSearchInput(searchQuery);
@@ -81,11 +119,41 @@ export const StorefrontPage = () => {
     loadFiltered();
   }, [companyId, categorySlug]);
 
+  const addRecentSearch = (term: string) => {
+    if (!recentKey || !term.trim()) return;
+    setRecentSearches((prev) => {
+      const filtered = prev.filter(
+        (t) => t.toLowerCase() !== term.toLowerCase()
+      );
+      const next = [term, ...filtered].slice(0, 5);
+      localStorage.setItem(recentKey, JSON.stringify(next));
+      return next;
+    });
+  };
+
+  const clearRecentSearches = () => {
+    setRecentSearches([]);
+    if (recentKey) localStorage.removeItem(recentKey);
+  };
+
+  const handlePickRecent = (term: string) => {
+    setSearchInput(term);
+    setDropdownOpen(false);
+    const params = new URLSearchParams(searchParams);
+    params.set('q', term);
+    setSearchParams(params);
+  };
+
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    const trimmed = searchInput.trim();
+    if (trimmed) {
+      addRecentSearch(trimmed);
+    }
+    setDropdownOpen(false);
     const params = new URLSearchParams(searchParams);
-    if (searchInput.trim()) {
-      params.set('q', searchInput.trim());
+    if (trimmed) {
+      params.set('q', trimmed);
     } else {
       params.delete('q');
     }
@@ -155,13 +223,17 @@ export const StorefrontPage = () => {
     } else {
       list = data.products;
     }
-    if (searchQuery) {
+    const activeQuery = debouncedSearchInput.trim().toLowerCase();
+    if (activeQuery) {
       list = list.filter((p) =>
-        p.name.toLowerCase().includes(searchQuery.toLowerCase())
+        p.name.toLowerCase().includes(activeQuery)
       );
     }
     return list;
   })();
+
+  const trimmedInput = searchInput.trim();
+  const showRecents = !trimmedInput && recentSearches.length > 0;
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-6">
@@ -174,16 +246,52 @@ export const StorefrontPage = () => {
         </p>
       </div>
 
-      {/* Search bar */}
+      {/* Search bar with recent searches dropdown */}
       <form onSubmit={handleSearchSubmit} className="mb-4">
-        <div className="flex gap-2 max-w-md">
-          <input
-            type="text"
-            value={searchInput}
-            onChange={(e) => setSearchInput(e.target.value)}
-            placeholder="Search in this store..."
-            className="flex-1 px-4 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:border-blue-500"
-          />
+        <div className="flex gap-2 max-w-md relative" ref={searchContainerRef}>
+          <div className="flex-1 relative">
+            <input
+              type="text"
+              value={searchInput}
+              onChange={(e) => setSearchInput(e.target.value)}
+              onFocus={() => setDropdownOpen(true)}
+              placeholder="Search in this store..."
+              className="w-full px-4 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:border-blue-500"
+            />
+
+            {/* Recent searches dropdown */}
+            {dropdownOpen && showRecents && (
+              <div className="absolute left-0 right-0 top-full mt-1 bg-white rounded-md border border-gray-200 shadow-lg z-50 overflow-hidden">
+                <div className="flex items-center justify-between px-4 pt-3 pb-1">
+                  <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                    Recent searches
+                  </p>
+                  <button
+                    type="button"
+                    onClick={clearRecentSearches}
+                    className="text-xs text-gray-400 hover:text-red-600 transition-colors cursor-pointer"
+                  >
+                    Clear all
+                  </button>
+                </div>
+                <ul className="pb-2">
+                  {recentSearches.map((term) => (
+                    <li key={term}>
+                      <button
+                        type="button"
+                        onClick={() => handlePickRecent(term)}
+                        className="w-full flex items-center gap-3 px-4 py-2 hover:bg-gray-50 text-left transition-colors cursor-pointer"
+                      >
+                        <Clock className="w-4 h-4 text-gray-400 flex-shrink-0" />
+                        <span className="text-sm text-gray-700 truncate">{term}</span>
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </div>
+
           <button
             type="submit"
             className="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2 rounded-md text-sm font-medium"

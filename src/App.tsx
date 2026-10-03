@@ -25,6 +25,7 @@ import { ProductDetail } from './pages/buyer/ProductDetail';
 import { Cart } from './pages/buyer/Cart';
 import { Checkout } from './pages/buyer/Checkout';
 import { Wishlist } from './pages/buyer/Wishlist';
+import { TrackOrder } from './pages/buyer/TrackOrder';
 import { SellerProfile } from './pages/buyer/SellerProfile';
 import { StorefrontPage } from './pages/buyer/StorefrontPage';
 
@@ -52,7 +53,7 @@ const ProtectedRoute = ({ children, allowedRoles }: { children: React.ReactNode,
   }
 
   if (user && !allowedRoles.includes(user.role)) {
-    return <Navigate to="/" replace />; // Redirect to home if unauthorized
+    return <Navigate to="/" replace />;
   }
 
   return <>{children}</>;
@@ -62,67 +63,68 @@ function App() {
   return (
     <BrowserRouter>
       <AuthProvider>
-    <CartProvider>
-      <WishlistProvider>
-        <ToastProvider />
-        <Routes>
-                        {/* Auth Routes */}
-                        <Route path="/login" element={<Login />} />
-            <Route path="/signup" element={<BuyerSignUp />} />
-            <Route path="/seller/signup" element={<SellerSignUp />} />
-            <Route path="/admin/login" element={<AdminLogin />} />
-            <Route path="/forgot-password" element={<ForgotPassword />} />
-            <Route path="/reset-password" element={<ResetPassword />} />
+        <CartProvider>
+          <WishlistProvider>
+            <ToastProvider />
+            <Routes>
+              {/* Auth Routes */}
+              <Route path="/login" element={<Login />} />
+              <Route path="/signup" element={<BuyerSignUp />} />
+              <Route path="/seller/signup" element={<SellerSignUp />} />
+              <Route path="/admin/login" element={<AdminLogin />} />
+              <Route path="/forgot-password" element={<ForgotPassword />} />
+              <Route path="/reset-password" element={<ResetPassword />} />
 
-            {/* Buyer Routes (Storefront) */}
-            <Route path="/" element={<BuyerLayout />}>
-              <Route index element={<Home />} />
-              <Route path="category/:slug" element={<CategoryPage />} />
-              <Route path="search" element={<Search />} />
-              <Route path="product/:id" element={<ProductDetail />} />
-              <Route path="cart" element={<Cart />} />
-              <Route path="wishlist" element={<Wishlist />} />
-              <Route path="seller-profile/:id" element={<SellerProfile />} />
-              <Route path="shop/:companyId" element={<StorefrontPage />} />
-              <Route path="checkout" element={<Checkout />} />
-            </Route>
+              {/* Buyer Routes (Storefront) */}
+              <Route path="/" element={<BuyerLayout />}>
+                <Route index element={<Home />} />
+                <Route path="category/:slug" element={<CategoryPage />} />
+                <Route path="search" element={<Search />} />
+                <Route path="product/:id" element={<ProductDetail />} />
+                <Route path="cart" element={<Cart />} />
+                <Route path="wishlist" element={<Wishlist />} />
+                <Route path="track-order" element={<TrackOrder />} />
+                <Route path="seller-profile/:id" element={<SellerProfile />} />
+                <Route path="shop/:companyId" element={<StorefrontPage />} />
+                <Route path="checkout" element={<Checkout />} />
+              </Route>
 
-            {/* Seller Routes (Dashboard) */}
-            <Route 
-              path="/seller" 
-              element={
-                <ProtectedRoute allowedRoles={['seller']}>
-                  <SellerLayout />
-                </ProtectedRoute>
-              }
-            >
-              <Route index element={<SellerOverview />} />
-              <Route path="products" element={<SellerProducts />} />
-              <Route path="products/bulk" element={<ProductsBulkUpload />} />
-              <Route path="categories" element={<SellerCategories />} />
-              <Route path="orders" element={<SellerOrders />} />
-              <Route path="payments" element={<SellerPayments />} />
-              <Route path="settings" element={<SellerSettings />} />
-            </Route>
+              {/* Seller Routes (Dashboard) */}
+              <Route
+                path="/seller"
+                element={
+                  <ProtectedRoute allowedRoles={['seller']}>
+                    <SellerLayout />
+                  </ProtectedRoute>
+                }
+              >
+                <Route index element={<SellerOverview />} />
+                <Route path="products" element={<SellerProducts />} />
+                <Route path="products/bulk" element={<ProductsBulkUpload />} />
+                <Route path="categories" element={<SellerCategories />} />
+                <Route path="orders" element={<SellerOrders />} />
+                <Route path="payments" element={<SellerPayments />} />
+                <Route path="settings" element={<SellerSettings />} />
+              </Route>
 
-            {/* Admin Routes (Dashboard) */}
-            <Route 
-              path="/admin" 
-              element={
-                <ProtectedRoute allowedRoles={['admin']}>
-                  <AdminLayout />
-                </ProtectedRoute>
-              }
-            >
-              <Route index element={<AdminOverview />} />
-              <Route path="listings" element={<AdminListings />} />
-              <Route path="sellers" element={<AdminSellers />} />
-              <Route path="orders" element={<AdminOrders />} />
-              <Route path="users" element={<AdminUsers />} />
-            </Route>
+              {/* Admin Routes (Dashboard) */}
+              <Route
+                path="/admin"
+                element={
+                  <ProtectedRoute allowedRoles={['admin']}>
+                    <AdminLayout />
+                  </ProtectedRoute>
+                }
+              >
+                <Route index element={<AdminOverview />} />
+                <Route path="listings" element={<AdminListings />} />
+                <Route path="sellers" element={<AdminSellers />} />
+                <Route path="orders" element={<AdminOrders />} />
+                <Route path="users" element={<AdminUsers />} />
+              </Route>
 
-            {/* Catch-all */}
-            <Route path="*" element={<Navigate to="/" replace />} />
+              {/* Catch-all */}
+              <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
           </WishlistProvider>
         </CartProvider>
