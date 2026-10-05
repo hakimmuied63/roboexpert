@@ -55,7 +55,7 @@ export function TrackOrder() {
   const urlOrderNumber = searchParams.get('order') ?? '';
 
   const [orderNumber, setOrderNumber] = useState(urlOrderNumber);
-  const [email, setEmail] = useState('');
+  const [email, setEmail] = useState(searchParams.get('email') ?? '');
   const [loading, setLoading] = useState(false);
   const [order, setOrder] = useState<TrackedOrder | null>(null);
   const [items, setItems] = useState<TrackedOrderItem[]>([]);
@@ -83,14 +83,21 @@ export function TrackOrder() {
     }
   }, []);
 
-  // Auto-lookup if URL has order number
-  useEffect(() => {
-    if (urlOrderNumber && email) {
-      handleLookup();
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [urlOrderNumber]);
-
+    // Auto-lookup if URL has order number
+    useEffect(() => {
+      if (urlOrderNumber && email) {
+        handleLookup();
+      }
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [urlOrderNumber]);
+  
+    // Auto-open cancel modal if ?action=cancel
+    useEffect(() => {
+      const action = searchParams.get('action');
+      if (action === 'cancel' && order && (order.status === 'placed' || order.status === 'confirmed')) {
+        setCancelOpen(true);
+      }
+    }, [order, searchParams]);
   const handleLookup = async (e?: React.FormEvent) => {
     e?.preventDefault();
 
