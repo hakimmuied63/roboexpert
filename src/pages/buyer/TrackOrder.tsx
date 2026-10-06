@@ -412,11 +412,37 @@ export function TrackOrder() {
               ))}
             </div>
 
-            <div className="mt-4 pt-4 border-t border-surface-100 flex justify-between">
-              <span className="font-semibold text-surface-900">Total</span>
-              <span className="text-lg font-bold text-surface-900">
-                ₹{order.total.toLocaleString('en-IN')}
-              </span>
+            <div className="mt-4 pt-4 border-t border-surface-100 space-y-2">
+              <div className="flex justify-between text-sm">
+                <span className="text-surface-600">Subtotal</span>
+                <span className="font-medium text-surface-900">
+                  ₹{order.subtotal.toLocaleString('en-IN')}
+                </span>
+              </div>
+              <div className="flex justify-between text-sm">
+                <span className="text-surface-600">Shipping</span>
+                <span className="font-medium text-surface-900">
+                  {order.shippingFee === 0 ? (
+                    <span className="text-success-600">Free</span>
+                  ) : (
+                    `₹${order.shippingFee.toLocaleString('en-IN')}`
+                  )}
+                </span>
+              </div>
+              {order.packagingFee > 0 && (
+                <div className="flex justify-between text-sm">
+                  <span className="text-surface-600">Packaging Charges</span>
+                  <span className="font-medium text-surface-900">
+                    ₹{order.packagingFee.toLocaleString('en-IN')}
+                  </span>
+                </div>
+              )}
+              <div className="flex justify-between pt-2 border-t border-surface-100">
+                <span className="font-semibold text-surface-900">Total</span>
+                <span className="text-lg font-bold text-surface-900">
+                  ₹{order.total.toLocaleString('en-IN')}
+                </span>
+              </div>
             </div>
           </div>
 

@@ -39,7 +39,7 @@ export function Checkout() {
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   const subtotal = totalPrice;
-  const shipping = subtotal > 999 ? 0 : 99;
+  const shipping = 0;
   const total = subtotal + shipping;
 
   if (items.length === 0) {
@@ -525,17 +525,19 @@ export function Checkout() {
               <div className="flex justify-between text-surface-600">
                 <span>Subtotal</span>
                 <span className="font-medium text-surface-900">
-                ₹;{subtotal.toLocaleString('en-IN')}
+                  ₹{subtotal.toLocaleString('en-IN')}
                 </span>
               </div>
               <div className="flex justify-between text-surface-600">
-                <span>Shipping fee</span>
+                <span>Shipping</span>
                 <span className="font-medium text-surface-900">
-                  {shipping === 0 ? (
-                    <span className="text-success-600">Free</span>
-                  ) : (
-                    <>₹{shipping}</>
-                  )}
+                  <span className="text-success-600">Free</span>
+                </span>
+              </div>
+              <div className="flex justify-between text-surface-600">
+                <span>Packaging</span>
+                <span className="text-xs text-surface-500 italic">
+                  Calculated at order placement
                 </span>
               </div>
             </div>

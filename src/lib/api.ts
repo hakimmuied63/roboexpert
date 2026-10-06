@@ -35,6 +35,10 @@ export type Product = {
   basePrice: number;
   images: string[];
   isActive: boolean;
+  compareAtPrice?: number;
+  mrp?: number;
+  rating?: number;
+  reviewCount?: number;
   createdAt: string;
   updatedAt: string;
   company?: {
@@ -433,6 +437,138 @@ export type AdminStats = {
       return false;
     }
   };
+  // ---------- Admin: Seller Approval ----------
+
+export type AdminSeller = {
+  _id: string;
+  email: string;
+  name: string;
+  phone?: string;
+  companyId?: string | null;
+  approvalStatus: 'pending' | 'approved' | 'rejected' | 'suspended';
+  approvalNote?: string | null;
+  approvedAt?: string | null;
+  createdAt: string;
+  company?: {
+    _id: string;
+    name: string;
+    slug: string;
+    contactEmail: string;
+    contactPhone?: string;
+  } | null;
+};
+
+export const fetchAdminSellers = async (
+  status: 'pending' | 'approved' | 'rejected' | 'suspended' = 'pending'
+): Promise<AdminSeller[]> => {
+  try {
+    const res = await authFetch(`${API_BASE}/admin/sellers?status=${status}`);
+    if (!res.ok) return [];
+    const data = await res.json();
+    return data.sellers ?? [];
+  } catch (error) {
+    console.error('fetchAdminSellers error:', error);
+    return [];
+  }
+};
+// ---------- Admin: Categories & Packaging ----------
+
+export type AdminCategory = {
+  _id: string;
+  name: string;
+  slug: string;
+  companyId: { _id: string; name: string; slug: string } | string;
+  parentId: string | null;
+  parentName: string | null;
+  packagingCharge: number;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export const fetchAdminCategories = async (
+  search?: string
+): Promise<AdminCategory[]> => {
+  try {
+    const url = search
+      ? `${API_BASE}/admin/categories?search=${encodeURIComponent(search)}`
+      : `${API_BASE}/admin/categories`;
+    const res = await authFetch(url);
+    if (!res.ok) return [];
+    const data = await res.json();
+    return data.categories ?? [];
+  } catch (error) {
+    console.error('fetchAdminCategories error:', error);
+    return [];
+  }
+};
+
+export const updateAdminCategoryPackaging = async (
+  categoryId: string,
+  packagingCharge: number
+): Promise<boolean> => {
+  try {
+    const res = await authFetch(
+      `${API_BASE}/admin/categories/${categoryId}/packaging`,
+      {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ packagingCharge }),
+      }
+    );
+    return res.ok;
+  } catch (error) {
+    console.error('updateAdminCategoryPackaging error:', error);
+    return false;
+  }
+};
+
+
+export const approveAdminSeller = async (userId: string): Promise<boolean> => {
+  try {
+    const res = await authFetch(`${API_BASE}/admin/sellers/${userId}/approve`, {
+      method: 'POST',
+    });
+    return res.ok;
+  } catch (error) {
+    console.error('approveAdminSeller error:', error);
+    return false;
+  }
+};
+
+export const rejectAdminSeller = async (
+  userId: string,
+  reason: string
+): Promise<boolean> => {
+  try {
+    const res = await authFetch(`${API_BASE}/admin/sellers/${userId}/reject`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ reason }),
+    });
+    return res.ok;
+  } catch (error) {
+    console.error('rejectAdminSeller error:', error);
+    return false;
+  }
+};
+
+export const suspendAdminSeller = async (
+  userId: string,
+  reason: string
+): Promise<boolean> => {
+  try {
+    const res = await authFetch(`${API_BASE}/admin/sellers/${userId}/suspend`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ reason }),
+    });
+    return res.ok;
+  } catch (error) {
+    console.error('suspendAdminSeller error:', error);
+    return false;
+  }
+};
   
   export const fetchAdminProducts = async (): Promise<Product[]> => {
     try {
@@ -1117,6 +1253,7 @@ export type TrackedOrder = {
   };
   subtotal: number;
   shippingFee: number;
+  packagingFee: number;
   total: number;
   status: string;
   paymentMethod: 'cod' | 'online';

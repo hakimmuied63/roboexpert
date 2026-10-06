@@ -42,6 +42,7 @@ import { ProductsBulkUpload } from './pages/seller/ProductsBulkUpload';
 import { AdminOverview } from './pages/admin/Overview';
 import { AdminListings } from './pages/admin/Listings';
 import { AdminSellers } from './pages/admin/Sellers';
+import { AdminCategories } from './pages/admin/Categories';
 import { AdminOrders } from './pages/admin/Orders';
 
 // Protected Route Component
@@ -119,6 +120,7 @@ function App() {
                 <Route index element={<AdminOverview />} />
                 <Route path="listings" element={<AdminListings />} />
                 <Route path="sellers" element={<AdminSellers />} />
+                <Route path="categories" element={<AdminCategories />} />
                 <Route path="orders" element={<AdminOrders />} />
                 <Route path="users" element={<AdminUsers />} />
               </Route>

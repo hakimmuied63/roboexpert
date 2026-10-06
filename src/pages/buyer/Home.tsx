@@ -1,191 +1,141 @@
-import { useEffect, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { ChevronLeft, ChevronRight, Package, Truck, Store } from 'lucide-react';
-import { LoadingSpinner } from '../../components/ui';
-import { WishlistButton } from '../../components/wishlist/WishlistButton';
+import { useEffect, useMemo, useState } from 'react';
+import { AlertCircle } from 'lucide-react';
+import { Button, EmptyState } from '../../components/ui';
+import { Hero } from '../../components/home/Hero';
+import { TrustStrip } from '../../components/home/TrustStrip';
+import { SellerCta } from '../../components/home/SellerCta';
+import { ProductSection } from '../../components/product/ProductSection';
 import {
   fetchAllProducts,
   fetchAllCompanies,
   type Product,
   type CompanySummary,
 } from '../../lib/api';
-
-const PROMO_BANNERS = [
-  {
-    id: 1,
-    title: 'Electronics sale — up to 40% off',
-    subtitle: 'Headphones, keyboards & more from sellers across India',
-    href: '/search',
-    bg: 'bg-primary-700',
-  },
-  {
-    id: 2,
-    title: 'New listings added this week',
-    subtitle: 'Fresh picks from our sellers',
-    href: '/search',
-    bg: 'bg-surface-800',
-  },
-  {
-    id: 3,
-    title: 'Free shipping on orders above ₹999',
-    subtitle: 'Applies to eligible products',
-    href: '/search',
-    bg: 'bg-primary-800',
-  },
-];
-
-function ProductTile({ product }: { product: Product }) {
-  return (
-    <Link
-      to={`/product/${product._id}`}
-      className="bg-white border border-surface-200 hover:border-surface-300 hover:shadow-sm transition-all group flex flex-col h-full"
-    >
-      <div className="relative aspect-square bg-surface-100 overflow-hidden">
-        <img
-          src={product.images[0] ?? 'https://via.placeholder.com/400'}
-          alt={product.name}
-          className="w-full h-full object-cover group-hover:scale-[1.03] transition-transform duration-300"
-          loading="lazy"
-          onError={(e) => {
-            (e.target as HTMLImageElement).src =
-              'https://via.placeholder.com/400?text=No+Image';
-          }}
-        />
-        <div className="absolute top-2 right-2 z-10">
-          <WishlistButton productId={product._id} size="sm" />
-        </div>
-      </div>
-      <div className="p-3 flex flex-col flex-1 gap-1.5">
-        <h3 className="text-sm font-medium text-surface-900 line-clamp-2 group-hover:text-primary-600 transition-colors leading-snug">
-          {product.name}
-        </h3>
-        <p className="text-base font-bold text-surface-900">
-          ₹{product.basePrice.toLocaleString('en-IN')}
-        </p>
-        {product.company && (
-          <p className="text-xs text-surface-500 truncate">
-            Sold by {product.company.name}
-          </p>
-        )}
-      </div>
-    </Link>
-  );
-}
+import { hasUsableImage } from '../../lib/marketplaceUi';
 
 export function Home() {
-  const navigate = useNavigate();
   const [products, setProducts] = useState<Product[]>([]);
   const [companies, setCompanies] = useState<CompanySummary[]>([]);
   const [loading, setLoading] = useState(true);
-  const [promoIndex, setPromoIndex] = useState(0);
+  const [error, setError] = useState(false);
 
-  useEffect(() => {
-    async function load() {
-      const [prods, comps] = await Promise.all([
-        fetchAllProducts(),
-        fetchAllCompanies(),
-      ]);
+  const load = async () => {
+    setLoading(true);
+    setError(false);
+    try {
+      const [prods, comps] = await Promise.all([fetchAllProducts(), fetchAllCompanies()]);
       setProducts(prods);
       setCompanies(comps);
+    } catch {
+      setError(true);
+    } finally {
       setLoading(false);
     }
+  };
+
+  useEffect(() => {
     load();
   }, []);
 
-  useEffect(() => {
-    const timer = setInterval(() => {
-      setPromoIndex((i) => (i + 1) % PROMO_BANNERS.length);
-    }, 5000);
-    return () => clearInterval(timer);
-  }, []);
 
-  if (loading) return <LoadingSpinner className="min-h-[40vh]" />;
+  const heroProducts = useMemo(
+    () => products.filter(hasUsableImage).slice(0, 4),
+    [products]
+  );
 
-  const promo = PROMO_BANNERS[promoIndex];
+  const newArrivals = useMemo(() => {
+    return [...products]
+      .sort(
+        (a, b) =>
+          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+      )
+      .slice(0, 10);
+  }, [products]);
+
+  const trending = useMemo(() => {
+    return [...products]
+      .sort((a, b) => Number(hasUsableImage(b)) - Number(hasUsableImage(a)))
+      .slice(0, 10);
+  }, [products]);
+
+  const under999 = useMemo(
+    () => products.filter((p) => p.basePrice <= 999).slice(0, 10),
+    [products]
+  );
+
+  const moreToExplore = useMemo(() => {
+    const taken = new Set([
+      ...trending.slice(0, 5).map((p) => p._id),
+      ...newArrivals.slice(0, 5).map((p) => p._id),
+    ]);
+    const rest = products.filter((p) => !taken.has(p._id));
+    return (rest.length >= 4 ? rest : products).slice(0, 15);
+  }, [products, trending, newArrivals]);
 
   return (
-    <div className="pb-8">
-      {/* Promo strip */}
-      <div className={`${promo.bg} text-white`}>
-        <div className="max-w-7xl mx-auto px-4 py-2.5 sm:py-3 flex items-center gap-3">
-          <button
-            type="button"
-            aria-label="Previous offer"
-            onClick={() =>
-              setPromoIndex((i) => (i - 1 + PROMO_BANNERS.length) % PROMO_BANNERS.length)
-            }
-            className="p-1 rounded hover:bg-white/10 transition-colors cursor-pointer shrink-0"
-          >
-            <ChevronLeft className="w-4 h-4" />
-          </button>
+    <div className="pb-16 space-y-10 sm:space-y-12">
+      <Hero products={heroProducts} />
+      <TrustStrip />
 
-          <Link
-            to={promo.href}
-            className="flex-1 min-w-0 flex flex-col sm:flex-row sm:items-baseline sm:gap-3 text-left"
-          >
-            <span className="text-sm sm:text-base font-semibold truncate">{promo.title}</span>
-            <span className="text-xs sm:text-sm text-white/80 truncate">{promo.subtitle}</span>
-          </Link>
-
-          <button
-            type="button"
-            aria-label="Next offer"
-            onClick={() => setPromoIndex((i) => (i + 1) % PROMO_BANNERS.length)}
-            className="p-1 rounded hover:bg-white/10 transition-colors cursor-pointer shrink-0"
-          >
-            <ChevronRight className="w-4 h-4" />
-          </button>
-        </div>
-      </div>
-
-      {/* All products */}
-      <section className="max-w-7xl mx-auto px-4 pt-10">
-        <div className="flex items-center justify-between mb-3">
-          <h2 className="text-lg font-bold text-surface-900">All products</h2>
-          <Link
-            to="/search"
-            className="text-sm font-medium text-primary-600 hover:text-primary-700 flex items-center gap-0.5"
-          >
-            See all <ChevronRight className="w-4 h-4" />
-          </Link>
-        </div>
-        {products.length === 0 ? (
-          <div className="text-center py-12 text-surface-500">
-            No products available yet.
+      {error ? (
+        <div className="max-w-7xl mx-auto px-4">
+          <div className="rounded-xl border border-danger-100 bg-white">
+            <EmptyState
+              icon={<AlertCircle className="w-8 h-8 text-danger-500" />}
+              title="Couldn’t load products"
+              description="Please try again. Your cart and account are unaffected."
+              action={
+                <Button onClick={load} variant="primary">
+                  Retry
+                </Button>
+              }
+            />
           </div>
-        ) : (
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
-            {products.map((product) => (
-              <ProductTile key={product._id} product={product} />
-            ))}
-          </div>
-        )}
-      </section>
-
-      {/* Bottom strip */}
-      <div className="max-w-7xl mx-auto px-4 mt-10 pt-6 border-t border-surface-200">
-        <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-xs text-surface-500">
-          <span className="flex items-center gap-1.5">
-            <Package className="w-3.5 h-3.5" />
-            {products.length} products listed
-          </span>
-          <span className="flex items-center gap-1.5">
-            <Store className="w-3.5 h-3.5" />
-            {companies.length} sellers
-          </span>
-          <span className="flex items-center gap-1.5">
-            <Truck className="w-3.5 h-3.5" />
-            Free shipping on orders above ₹999
-          </span>
-          <button
-            type="button"
-            onClick={() => navigate('/seller/signup')}
-            className="text-primary-600 hover:text-primary-700 font-medium cursor-pointer ml-auto"
-          >
-            Sell on Roboexpert
-          </button>
         </div>
-      </div>
+      ) : (
+        <>
+          <ProductSection
+            title="Trending now"
+            products={trending}
+            loading={loading}
+            seeAllHref="/search"
+          />
+          <ProductSection
+            title="New arrivals"
+            products={newArrivals}
+            loading={loading}
+            seeAllHref="/search"
+          />
+          {(loading || under999.length > 0) && (
+            <ProductSection
+              title="Under ₹999"
+              products={under999}
+              loading={loading}
+              seeAllHref="/search"
+              emptyTitle="No products under ₹999"
+              emptyDescription="Try trending picks or browse all products."
+            />
+          )}
+          <ProductSection
+            title="More to explore"
+            products={moreToExplore}
+            loading={loading}
+            layout="grid"
+            seeAllHref="/search"
+            emptyTitle="No products yet"
+            emptyDescription="Sellers are setting up their shops. Check back soon — or start selling today."
+          />
+        </>
+      )}
+
+      <SellerCta />
+
+      {!loading && companies.length > 0 && (
+        <p className="max-w-7xl mx-auto px-4 text-center text-xs text-surface-500">
+          {products.length} products from {companies.length}{' '}
+          {companies.length === 1 ? 'seller' : 'sellers'} across India
+        </p>
+      )}
     </div>
   );
 }

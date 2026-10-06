@@ -14,13 +14,14 @@ import {
   BarChart3,
   Tag,
 } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
-
+import { fetchAdminSellers } from '../../lib/api';
 interface SidebarLink {
   to: string;
   icon: React.ReactNode;
   label: string;
+  badgeKey?: 'pendingSellers';
 }
 
 interface SidebarProps {
@@ -40,16 +41,34 @@ const adminLinks: SidebarLink[] = [
   { to: '/admin', icon: <BarChart3 className="w-5 h-5" />, label: 'Overview' },
   { to: '/admin/listings', icon: <Package className="w-5 h-5" />, label: 'Listings' },
   { to: '/admin/orders', icon: <ListChecks className="w-5 h-5" />, label: 'Orders' },
-  { to: '/admin/sellers', icon: <Users className="w-5 h-5" />, label: 'Sellers' },
+  { to: '/admin/sellers', icon: <Users className="w-5 h-5" />, label: 'Sellers', badgeKey: 'pendingSellers' },
   { to: '/admin/users', icon: <Users className="w-5 h-5" />, label: 'Users' },
+  { to: '/admin/categories', icon: <Tag className="w-5 h-5" />, label: 'Packaging' },
 ];
 export function Sidebar({ type }: SidebarProps) {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [pendingSellersCount, setPendingSellersCount] = useState(0);
 
   const links = type === 'seller' ? sellerLinks : adminLinks;
+
+  // Fetch pending sellers count for admin
+  useEffect(() => {
+    if (type !== 'admin') return;
+
+    const loadCount = async () => {
+      const sellers = await fetchAdminSellers('pending');
+      setPendingSellersCount(sellers.length);
+    };
+
+    loadCount();
+
+    // Refresh every 60 seconds
+    const interval = setInterval(loadCount, 60000);
+    return () => clearInterval(interval);
+  }, [type]);
 
   const handleLogout = () => {
     logout();
@@ -101,30 +120,47 @@ export function Sidebar({ type }: SidebarProps) {
         </div>
       )}
 
-      {/* Navigation */}
-      <nav className="flex-1 p-3 space-y-1 overflow-y-auto">
-        {links.map(link => (
-          <NavLink
-            key={link.to}
-            to={link.to}
-            end={link.to === '/seller' || link.to === '/admin'}
-            onClick={() => setMobileOpen(false)}
-            className={({ isActive }) => `
-              flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium
-              transition-all duration-200
-              ${collapsed ? 'justify-center' : ''}
-              ${isActive
-                ? 'bg-primary-50 text-primary-700'
-                : 'text-surface-600 hover:bg-surface-50 hover:text-surface-900'}
-            `}
-            title={collapsed ? link.label : undefined}
-          >
-            {link.icon}
-            {!collapsed && <span>{link.label}</span>}
-          </NavLink>
-        ))}
-      </nav>
+            {/* Navigation */}
+            <nav className="flex-1 p-3 space-y-1 overflow-y-auto">
+        {links.map(link => {
+          const showBadge = link.badgeKey === 'pendingSellers' && pendingSellersCount > 0;
+          return (
+            <NavLink
+              key={link.to}
+              to={link.to}
+              end={link.to === '/seller' || link.to === '/admin'}
+              onClick={() => setMobileOpen(false)}
+              className={({ isActive }) => `
+                relative flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium
+                transition-all duration-200
+                ${collapsed ? 'justify-center' : ''}
+                ${isActive
+                  ? 'bg-primary-50 text-primary-700'
+                  : 'text-surface-600 hover:bg-surface-50 hover:text-surface-900'}
+              `}
+              title={collapsed ? link.label : undefined}
+            >
+              <span className="relative">
+                {link.icon}
+                {collapsed && showBadge && (
+                  <span className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-danger-500 ring-2 ring-white" />
+                )}
+              </span>
 
+              {!collapsed && (
+                <>
+                  <span className="flex-1">{link.label}</span>
+                  {showBadge && (
+                    <span className="inline-flex items-center justify-center min-w-[20px] h-5 px-1.5 rounded-full bg-danger-500 text-white text-[11px] font-bold">
+                      {pendingSellersCount}
+                    </span>
+                  )}
+                </>
+              )}
+            </NavLink>
+          );
+        })}
+      </nav>
       {/* Bottom */}
       <div className="p-3 border-t border-surface-200">
         <button

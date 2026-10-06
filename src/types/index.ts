@@ -5,13 +5,19 @@ export type UserRole = 'buyer' | 'seller' | 'admin';
 
 export type AuthUserRole = 'seller' | 'admin';
 
+export type ApprovalStatus = 'pending' | 'approved' | 'rejected' | 'suspended';
+
 export interface AuthUser {
   _id: string;
   email: string;
   role: AuthUserRole;
   companyId: string | null;
   name: string;
+  phone?: string;
   isActive: boolean;
+  approvalStatus: ApprovalStatus;
+  approvalNote?: string | null;
+  approvedAt?: string | null;
   createdAt: string;
   updatedAt: string;
 }

@@ -8,13 +8,14 @@ import { OrderStatusBadge, LoadingSpinner, EmptyState, Button } from '../../comp
 
 export function BuyerOrders() {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     async function load() {
       if (!user) return;
-      const data = await orderService.getAll({ buyerId: user.id });
+      const data = await orderService.getAll({ buyerId: user._id });
       setOrders(data);
       setLoading(false);
     }
