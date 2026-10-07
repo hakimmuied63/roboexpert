@@ -3,6 +3,8 @@ import { AnnouncementBar } from '../components/layout/AnnouncementBar';
 import { Header } from '../components/layout/Header';
 import { CategoryStrip } from '../components/layout/CategoryStrip';
 import { Footer } from '../components/layout/Footer';
+import { ChatWidget } from '../components/chat/ChatWidget';
+import { LeadPopup } from '../components/lead/LeadPopup';
 import { useMarketplaceCategories } from '../hooks/useMarketplaceCategories';
 
 export function BuyerLayout() {
@@ -21,6 +23,8 @@ export function BuyerLayout() {
         <Outlet context={{ categories }} />
       </main>
       <Footer />
+      <ChatWidget />
+      <LeadPopup />
     </div>
   );
 }

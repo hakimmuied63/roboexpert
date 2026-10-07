@@ -13,6 +13,7 @@ import {
   ListChecks,
   BarChart3,
   Tag,
+  UserPlus,
 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
@@ -44,6 +45,7 @@ const adminLinks: SidebarLink[] = [
   { to: '/admin/sellers', icon: <Users className="w-5 h-5" />, label: 'Sellers', badgeKey: 'pendingSellers' },
   { to: '/admin/users', icon: <Users className="w-5 h-5" />, label: 'Users' },
   { to: '/admin/categories', icon: <Tag className="w-5 h-5" />, label: 'Packaging' },
+  { to: '/admin/leads', icon: <UserPlus className="w-5 h-5" />, label: 'Leads' },
 ];
 export function Sidebar({ type }: SidebarProps) {
   const { user, logout } = useAuth();

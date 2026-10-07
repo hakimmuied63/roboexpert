@@ -43,6 +43,7 @@ import { AdminOverview } from './pages/admin/Overview';
 import { AdminListings } from './pages/admin/Listings';
 import { AdminSellers } from './pages/admin/Sellers';
 import { AdminCategories } from './pages/admin/Categories';
+import { AdminLeads } from './pages/admin/Leads';
 import { AdminOrders } from './pages/admin/Orders';
 
 // Protected Route Component
@@ -121,6 +122,7 @@ function App() {
                 <Route path="listings" element={<AdminListings />} />
                 <Route path="sellers" element={<AdminSellers />} />
                 <Route path="categories" element={<AdminCategories />} />
+                <Route path="leads" element={<AdminLeads />} />
                 <Route path="orders" element={<AdminOrders />} />
                 <Route path="users" element={<AdminUsers />} />
               </Route>

@@ -268,6 +268,47 @@ export const verifyPayment = async (payload: {
     return null;
   }
 };
+// ---------- Chatbot ----------
+
+export type ChatProduct = {
+  _id: string;
+  name: string;
+  basePrice: number;
+  image?: string;
+};
+
+export type ChatMessage = {
+  role: 'user' | 'model';
+  parts: string;
+};
+
+export const sendChatMessage = async (
+  message: string,
+  history: ChatMessage[]
+): Promise<{ ok: boolean; reply?: string; products?: ChatProduct[]; error?: string }> => {
+  try {
+    const res = await fetch(`${API_BASE}/chat`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ message, history }),
+    });
+
+    const data = await res.json().catch(() => null);
+
+    if (!res.ok || !data || !data.ok) {
+      return { ok: false, error: data?.error ?? 'Chat failed' };
+    }
+
+    return {
+      ok: true,
+      reply: data.reply,
+      products: data.products ?? [],
+    };
+  } catch (error) {
+    console.error('sendChatMessage error:', error);
+    return { ok: false, error: 'Network error' };
+  }
+};
 
 export const placeOrder = async (
   payload: PlaceOrderPayload
@@ -471,6 +512,45 @@ export const fetchAdminSellers = async (
     return [];
   }
 };
+// ---------- Admin: Leads ----------
+
+export type Lead = {
+  _id: string;
+  name: string;
+  phone: string;
+  source?: string;
+  userAgent?: string;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export const fetchAdminLeads = async (search?: string): Promise<Lead[]> => {
+  try {
+    const url = search
+      ? `${API_BASE}/admin/leads?search=${encodeURIComponent(search)}`
+      : `${API_BASE}/admin/leads`;
+    const res = await authFetch(url);
+    if (!res.ok) return [];
+    const data = await res.json();
+    return data.leads ?? [];
+  } catch (error) {
+    console.error('fetchAdminLeads error:', error);
+    return [];
+  }
+};
+
+export const deleteAdminLead = async (leadId: string): Promise<boolean> => {
+  try {
+    const res = await authFetch(`${API_BASE}/admin/leads/${leadId}`, {
+      method: 'DELETE',
+    });
+    return res.ok;
+  } catch (error) {
+    console.error('deleteAdminLead error:', error);
+    return false;
+  }
+};
+
 // ---------- Admin: Categories & Packaging ----------
 
 export type AdminCategory = {
@@ -1366,5 +1446,24 @@ export const requestReturn = async (
   } catch (error) {
     console.error('requestReturn error:', error);
     return { success: false, error: 'Network error' };
+  }
+};
+// ---------- Lead Capture ----------
+
+export const createLead = async (
+  name: string,
+  phone: string,
+  source = 'popup'
+): Promise<boolean> => {
+  try {
+    const res = await fetch(`${API_BASE}/leads`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name, phone, source }),
+    });
+    return res.ok;
+  } catch (error) {
+    console.error('createLead error:', error);
+    return false;
   }
 };
