@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useCart } from '../../contexts/CartContext';
 import { Button, Input, Select } from '../../components/ui';
 import { placeOrder, createPaymentOrder, verifyPayment } from '../../lib/api';
+import { getStoredUtm } from '../../lib/utm';
 import toast from 'react-hot-toast';
 import {
   CheckCircle2,
@@ -71,6 +72,8 @@ export function Checkout() {
     setLoading(true);
 
     try {
+      const utm = getStoredUtm();
+
       const payload = {
         buyer: {
           name: form.fullName,
@@ -91,6 +94,7 @@ export function Checkout() {
           variantId: i.variantId,
           quantity: i.quantity,
         })),
+        utm,
       };
 
       toast('Placing your order...', { icon: '📦' });

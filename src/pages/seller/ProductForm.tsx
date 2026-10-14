@@ -1,11 +1,12 @@
-import { useEffect, useState } from 'react';
-import { ArrowLeft, Upload, Plus, Trash2, Eye, EyeOff } from 'lucide-react';
+import { useEffect, useState, useRef } from 'react';
+import { ArrowLeft, Upload, Plus, Trash2, Eye, EyeOff, X, Loader2 } from 'lucide-react';
 import { Button, Input, Textarea, Select } from '../../components/ui';
 import {
   fetchSellerCategories,
   createSellerProduct,
   updateSellerProduct,
-  type Category,
+  uploadImage as uploadImageApi,
+  type CategoryTreeNode,
   type Product,
 } from '../../lib/api';
 import toast from 'react-hot-toast';
@@ -35,7 +36,27 @@ const emptyVariant = (): VariantDraft => ({
 export function ProductForm({ product, onSave, onCancel }: ProductFormProps) {
   const isEditing = !!product;
   const [loading, setLoading] = useState(false);
-  const [categories, setCategories] = useState<Category[]>([]);
+  const [categories, setCategories] = useState<any[]>([]);
+    // Flatten category tree for hierarchical dropdown
+    const flatCategoryOptions = (() => {
+      const options: { value: string; label: string }[] = [];
+      const walk = (nodes: any[], parentName: string, depth: number) => {
+        for (const node of nodes) {
+          if (depth > 0) {
+            const prefix = parentName ? `${parentName} → ` : '';
+            options.push({
+              value: node._id,
+              label: `${prefix}${node.name}`,
+            });
+          }
+          if (node.children && node.children.length > 0) {
+            walk(node.children, node.name, depth + 1);
+          }
+        }
+      };
+      walk(categories, '', 0);
+      return options;
+    })();
   const [categoriesLoading, setCategoriesLoading] = useState(true);
 
   const [form, setForm] = useState({
@@ -43,12 +64,14 @@ export function ProductForm({ product, onSave, onCancel }: ProductFormProps) {
     description: product?.description ?? '',
     basePrice: product?.basePrice?.toString() ?? '',
     categoryId: '',
-    imageUrl: product?.images?.[0] ?? '',
+    imageUrls: product?.images ?? [],
     isActive: product?.isActive ?? true,
   });
 
   const [variants, setVariants] = useState<VariantDraft[]>([emptyVariant()]);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [uploadingIndex, setUploadingIndex] = useState<number | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     async function load() {
@@ -80,7 +103,6 @@ export function ProductForm({ product, onSave, onCancel }: ProductFormProps) {
       e.basePrice = 'Valid base price is required';
     }
 
-    // Variants only required when creating (backend can't update them)
     if (!isEditing) {
       if (variants.length === 0) {
         e.variants = 'At least one variant is required';
@@ -101,6 +123,63 @@ export function ProductForm({ product, onSave, onCancel }: ProductFormProps) {
     return Object.keys(e).length === 0;
   };
 
+  const handleImageUpload = async (file: File, index: number) => {
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      toast.error('Please select an image file');
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error('Image must be under 5 MB');
+      return;
+    }
+
+    setUploadingIndex(index);
+    const result = await uploadImageApi(file, 'products');
+    setUploadingIndex(null);
+
+    if (!result.ok || !result.url) {
+      toast.error(result.error ?? 'Upload failed');
+      return;
+    }
+
+    setForm((prev) => ({
+      ...prev,
+      imageUrls: [...prev.imageUrls, result.url!],
+    }));
+    toast.success('Image uploaded');
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files ?? []);
+    if (files.length === 0) return;
+
+    (async () => {
+      for (let i = 0; i < files.length; i++) {
+        await handleImageUpload(files[i], i);
+      }
+    })();
+
+    e.target.value = '';
+  };
+
+  const handleRemoveImage = (index: number) => {
+    setForm((prev) => ({
+      ...prev,
+      imageUrls: prev.imageUrls.filter((_, i) => i !== index),
+    }));
+  };
+
+  const handleSetPrimary = (index: number) => {
+    setForm((prev) => {
+      const newUrls = [...prev.imageUrls];
+      const [moved] = newUrls.splice(index, 1);
+      newUrls.unshift(moved);
+      return { ...prev, imageUrls: newUrls };
+    });
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!validate()) {
@@ -116,7 +195,7 @@ export function ProductForm({ product, onSave, onCancel }: ProductFormProps) {
           description: form.description.trim() || undefined,
           basePrice: Number(form.basePrice),
           categoryId: form.categoryId || null,
-          images: form.imageUrl.trim() ? [form.imageUrl.trim()] : [],
+          images: form.imageUrls,
           isActive: form.isActive,
         };
 
@@ -134,7 +213,7 @@ export function ProductForm({ product, onSave, onCancel }: ProductFormProps) {
           description: form.description.trim() || undefined,
           basePrice: Number(form.basePrice),
           categoryId: form.categoryId || undefined,
-          images: form.imageUrl.trim() ? [form.imageUrl.trim()] : [],
+          images: form.imageUrls,
           variants: variants.map((v) => ({
             sku: v.sku.trim(),
             attributes: {
@@ -209,11 +288,17 @@ export function ProductForm({ product, onSave, onCancel }: ProductFormProps) {
           />
 
           <Select
-            label="Category"
+            label="Subcategory"
             value={form.categoryId}
             onChange={(e) => setForm({ ...form, categoryId: e.target.value })}
-            options={categories.map((c) => ({ value: c._id, label: c.name }))}
-            placeholder={categoriesLoading ? 'Loading...' : 'Select a category'}
+            options={flatCategoryOptions}
+            placeholder={
+              categoriesLoading
+                ? 'Loading...'
+                : flatCategoryOptions.length === 0
+                ? 'No subcategories — add some first'
+                : 'Select a subcategory'
+            }
           />
 
           <Input
@@ -226,13 +311,86 @@ export function ProductForm({ product, onSave, onCancel }: ProductFormProps) {
             min="0"
           />
 
-          <Input
-            label="Image URL"
-            value={form.imageUrl}
-            onChange={(e) => setForm({ ...form, imageUrl: e.target.value })}
-            placeholder="https://..."
-            helperText="Paste an image URL. Upload coming soon."
-          />
+          {/* Product Images */}
+          <div>
+            <label className="block text-sm font-medium text-surface-700 mb-2">
+              Product Images
+              <span className="text-xs text-surface-400 font-normal ml-2">
+                ({form.imageUrls.length}/5)
+              </span>
+            </label>
+
+            <div className="grid grid-cols-3 sm:grid-cols-4 gap-3">
+              {form.imageUrls.map((url, index) => (
+                <div key={index} className="relative group">
+                  <img
+                    src={url}
+                    alt={`Product ${index + 1}`}
+                    className="w-full aspect-square rounded-lg object-cover border border-surface-200"
+                  />
+
+                  {index === 0 && (
+                    <span className="absolute top-1.5 left-1.5 bg-primary-600 text-white text-[10px] font-bold px-2 py-0.5 rounded-full">
+                      MAIN
+                    </span>
+                  )}
+
+                  <button
+                    type="button"
+                    onClick={() => handleRemoveImage(index)}
+                    className="absolute -top-2 -right-2 w-6 h-6 rounded-full bg-danger-600 text-white flex items-center justify-center hover:bg-danger-700 transition-colors opacity-0 group-hover:opacity-100"
+                    aria-label="Remove image"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+
+                  {index !== 0 && (
+                    <button
+                      type="button"
+                      onClick={() => handleSetPrimary(index)}
+                      className="absolute bottom-1.5 left-1.5 right-1.5 bg-white/90 hover:bg-white text-surface-700 text-[10px] font-medium py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity"
+                    >
+                      Set as main
+                    </button>
+                  )}
+                </div>
+              ))}
+
+              {form.imageUrls.length < 5 && (
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={uploadingIndex !== null}
+                  className="aspect-square rounded-lg border-2 border-dashed border-surface-300 hover:border-primary-500 hover:bg-primary-50/50 transition-colors flex flex-col items-center justify-center gap-1.5 text-surface-500 hover:text-primary-600 disabled:opacity-60 disabled:cursor-not-allowed"
+                >
+                  {uploadingIndex !== null ? (
+                    <>
+                      <Loader2 className="w-5 h-5 animate-spin" />
+                      <span className="text-xs">Uploading...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Plus className="w-5 h-5" />
+                      <span className="text-xs font-medium">Add</span>
+                    </>
+                  )}
+                </button>
+              )}
+            </div>
+
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              multiple
+              onChange={handleFileChange}
+              className="hidden"
+            />
+
+            <p className="mt-2 text-xs text-surface-400">
+              Upload up to 5 images. PNG, JPG, WebP (max 5 MB each). First image is the main image.
+            </p>
+          </div>
 
           {isEditing && (
             <label className="flex items-center gap-3 cursor-pointer pt-2 border-t border-surface-100">

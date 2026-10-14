@@ -1,8 +1,10 @@
 import { useEffect, useMemo, useState } from 'react';
+import { useOutletContext } from 'react-router-dom';
 import { AlertCircle } from 'lucide-react';
 import { Button, EmptyState } from '../../components/ui';
 import { Hero } from '../../components/home/Hero';
 import { TrustStrip } from '../../components/home/TrustStrip';
+import { CategorySection } from '../../components/home/CategorySection';
 import { SellerCta } from '../../components/home/SellerCta';
 import { ProductSection } from '../../components/product/ProductSection';
 import {
@@ -10,10 +12,12 @@ import {
   fetchAllCompanies,
   type Product,
   type CompanySummary,
+  type Category,
 } from '../../lib/api';
 import { hasUsableImage } from '../../lib/marketplaceUi';
 
 export function Home() {
+  const { categories = [] } = useOutletContext<{ categories?: Category[] }>() || {};
   const [products, setProducts] = useState<Product[]>([]);
   const [companies, setCompanies] = useState<CompanySummary[]>([]);
   const [loading, setLoading] = useState(true);
@@ -36,7 +40,6 @@ export function Home() {
   useEffect(() => {
     load();
   }, []);
-
 
   const heroProducts = useMemo(
     () => products.filter(hasUsableImage).slice(0, 4),
@@ -73,13 +76,20 @@ export function Home() {
   }, [products, trending, newArrivals]);
 
   return (
-    <div className="pb-16 space-y-10 sm:space-y-12">
+    <div className="pb-16 sm:pb-20 space-y-12 sm:space-y-16">
+      {/* 2. Hero Section */}
       <Hero products={heroProducts} />
+
+      {/* 3. Trust Strip */}
       <TrustStrip />
 
+      {/* 4. New "Shop by category" Section */}
+      <CategorySection categories={categories} />
+
+      {/* Product Sections */}
       {error ? (
         <div className="max-w-7xl mx-auto px-4">
-          <div className="rounded-xl border border-danger-100 bg-white">
+          <div className="rounded-[28px] border border-danger-100 bg-white p-6 shadow-sm">
             <EmptyState
               icon={<AlertCircle className="w-8 h-8 text-danger-500" />}
               title="Couldn’t load products"
@@ -94,18 +104,21 @@ export function Home() {
         </div>
       ) : (
         <>
+          {/* 5. Trending now */}
           <ProductSection
             title="Trending now"
             products={trending}
             loading={loading}
             seeAllHref="/search"
           />
+
           <ProductSection
             title="New arrivals"
             products={newArrivals}
             loading={loading}
             seeAllHref="/search"
           />
+
           {(loading || under999.length > 0) && (
             <ProductSection
               title="Under ₹999"
@@ -116,6 +129,7 @@ export function Home() {
               emptyDescription="Try trending picks or browse all products."
             />
           )}
+
           <ProductSection
             title="More to explore"
             products={moreToExplore}
@@ -128,10 +142,11 @@ export function Home() {
         </>
       )}
 
+      {/* 6. Sell banner */}
       <SellerCta />
 
       {!loading && companies.length > 0 && (
-        <p className="max-w-7xl mx-auto px-4 text-center text-xs text-surface-500">
+        <p className="max-w-7xl mx-auto px-4 text-center text-xs text-surface-500 font-medium">
           {products.length} products from {companies.length}{' '}
           {companies.length === 1 ? 'seller' : 'sellers'} across India
         </p>

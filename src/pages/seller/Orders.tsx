@@ -3,10 +3,11 @@ import {
   fetchSellerOrders,
   fetchSellerOrderItems,
   updateSellerOrderStatus,
+  downloadSellerInvoice,
   type SellerOrder,
 } from '../../lib/api';
 import { LoadingSpinner, EmptyState } from '../../components/ui';
-import { ShoppingBag, ChevronDown, Package } from 'lucide-react';
+import { ShoppingBag, ChevronDown, Package, FileText } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 type OrderItemDetail = {
@@ -37,6 +38,20 @@ const statusStyles: Record<string, string> = {
   delivered: 'bg-green-50 text-green-700',
   cancelled: 'bg-red-50 text-red-700',
 };
+function getUtmSource(order: SellerOrder): string | null {
+  const utm = (order as any).utm;
+  if (!utm) return null;
+  if (utm.source) return String(utm.source);
+  if (utm.referrer) {
+    try {
+      const ref = new URL(utm.referrer);
+      return ref.hostname.replace('www.', '');
+    } catch {
+      return null;
+    }
+  }
+  return null;
+}
 
 export function SellerOrders() {
   const [orders, setOrders] = useState<SellerOrder[]>([]);
@@ -71,6 +86,15 @@ export function SellerOrders() {
       const items = await fetchSellerOrderItems(orderId);
       setItemsByOrder((prev) => ({ ...prev, [orderId]: items }));
       setItemsLoading(null);
+    }
+  };
+
+  const handleDownloadInvoice = async (orderId: string, orderNumber: string) => {
+    const ok = await downloadSellerInvoice(orderId);
+    if (!ok) {
+      toast.error('Could not download invoice');
+    } else {
+      toast.success(`Invoice for ${orderNumber} downloading`);
     }
   };
 
@@ -195,6 +219,11 @@ export function SellerOrders() {
                         >
                           {order.paymentMethod === 'cod' ? 'COD' : 'Online'}
                         </span>
+                        {getUtmSource(order) && (
+                          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-purple-50 text-purple-700">
+                            {getUtmSource(order)}
+                          </span>
+                        )}
                       </div>
                       <p className="text-sm text-surface-600 mt-0.5">
                         {order.buyer.name} · {order.buyer.phone}
@@ -215,6 +244,17 @@ export function SellerOrders() {
                     <p className="text-lg font-bold text-surface-900">
                       ₹{order.total.toLocaleString('en-IN')}
                     </p>
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDownloadInvoice(order._id, order.orderNumber);
+                      }}
+                      className="p-2 rounded-lg text-surface-500 hover:bg-primary-50 hover:text-primary-600 transition-colors"
+                      title="Download Invoice"
+                    >
+                      <FileText className="w-4 h-4" />
+                    </button>
 
                     {order.status !== 'delivered' && order.status !== 'cancelled' && (
                       <div className="relative" onClick={(e) => e.stopPropagation()}>

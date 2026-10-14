@@ -2,7 +2,7 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 import type { AuthUser } from '../types';
 import { signupSeller } from '../lib/api';
 
-const API_BASE = 'http://localhost:5001';
+const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5001';
 
 const TOKEN_KEY = 'roboexpert_token';
 const REFRESH_KEY = 'roboexpert_refresh';

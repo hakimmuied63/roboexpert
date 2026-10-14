@@ -4,7 +4,7 @@ import { Store, ArrowLeft, CheckCircle2 } from 'lucide-react';
 import { Button, Input } from '../../components/ui';
 import toast from 'react-hot-toast';
 
-const API_BASE = 'http://localhost:5001';
+const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5001';
 
 export function ForgotPassword() {
   const [email, setEmail] = useState('');

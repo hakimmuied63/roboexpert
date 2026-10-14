@@ -1,4 +1,4 @@
-const API_BASE = 'http://localhost:5001';
+const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5001';
 const TOKEN_KEY = 'roboexpert_token';
 
 const getAuthHeaders = (): Record<string, string> => {
@@ -179,6 +179,15 @@ export type PlaceOrderPayload = {
   };
   paymentMethod: 'cod' | 'online';
   items: CartItemForOrder[];
+  utm?: {
+    source?: string;
+    medium?: string;
+    campaign?: string;
+    term?: string;
+    content?: string;
+    landingPage?: string;
+    referrer?: string;
+  };
 };
 
 export type PlaceOrderResponse = {
@@ -1446,6 +1455,68 @@ export const requestReturn = async (
   } catch (error) {
     console.error('requestReturn error:', error);
     return { success: false, error: 'Network error' };
+  }
+};
+// ---------- Invoice Download ----------
+
+export const getInvoiceUrl = (orderNumber: string, email: string): string => {
+  return `${API_BASE}/orders/track/${encodeURIComponent(
+    orderNumber
+  )}/invoice?email=${encodeURIComponent(email)}`;
+};
+
+export const getSellerInvoiceUrl = (orderId: string): string => {
+  // Seller uses auth header, so we need to fetch with auth
+  // For downloads, we'll use the fetch-with-blob approach
+  return `${API_BASE}/orders/my/${orderId}/invoice`;
+};
+
+export const downloadSellerInvoice = async (orderId: string): Promise<boolean> => {
+  try {
+    const res = await authFetch(getSellerInvoiceUrl(orderId));
+    if (!res.ok) return false;
+
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `invoice-${orderId}.pdf`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+    return true;
+  } catch (error) {
+    console.error('downloadSellerInvoice error:', error);
+    return false;
+  }
+};
+// ---------- File Upload ----------
+
+export const uploadImage = async (
+  file: File,
+  folder: 'products' | 'sellers' | 'profiles' | 'leads' = 'products'
+): Promise<{ ok: boolean; url?: string; error?: string }> => {
+  try {
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('folder', folder);
+
+    const res = await authFetch(`${API_BASE}/upload`, {
+      method: 'POST',
+      body: formData,
+    });
+
+    const data = await res.json().catch(() => null);
+
+    if (!res.ok || !data || !data.ok) {
+      return { ok: false, error: data?.error ?? 'Upload failed' };
+    }
+
+    return { ok: true, url: data.url };
+  } catch (error) {
+    console.error('uploadImage error:', error);
+    return { ok: false, error: 'Network error' };
   }
 };
 // ---------- Lead Capture ----------

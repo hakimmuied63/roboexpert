@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 import { Filter } from 'lucide-react';
 import { LoadingSpinner, EmptyState, Button } from '../../components/ui';
-import { WishlistButton } from '../../components/wishlist/WishlistButton';
+import { ProductCard } from '../../components/product/ProductCard';
 import { fetchProductsByCategory, type Product } from '../../lib/api';
 
 type SortOption = 'newest' | 'price-asc' | 'price-desc';
@@ -98,41 +98,9 @@ export function CategoryPage() {
           description={`There are no products listed in ${category.name} right now.`}
         />
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6">
+        <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4">
           {sortedProducts.map((product) => (
-            <Link
-              key={product._id}
-              to={`/product/${product._id}`}
-              className="bg-white rounded-xl border border-surface-200 overflow-hidden hover:shadow-lg hover:-translate-y-1 transition-all group flex flex-col h-full"
-            >
-              <div className="relative aspect-[4/3] bg-surface-100 overflow-hidden">
-                <img
-                  src={product.images[0] ?? 'https://via.placeholder.com/400'}
-                  alt={product.name}
-                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                  onError={(e) => {
-                    (e.target as HTMLImageElement).src =
-                      'https://via.placeholder.com/400?text=No+Image';
-                  }}
-                />
-                <div className="absolute top-2 right-2 z-10">
-                  <WishlistButton productId={product._id} size="sm" />
-                </div>
-              </div>
-              <div className="p-4 flex flex-col flex-1">
-                {product.company && (
-                  <span className="text-xs font-medium text-surface-500 uppercase mb-2">
-                    {product.company.name}
-                  </span>
-                )}
-                <h4 className="text-sm font-bold text-surface-900 line-clamp-2 mb-3 flex-1 group-hover:text-primary-600 transition-colors">
-                  {product.name}
-                </h4>
-                <p className="text-lg font-bold text-surface-900">
-                  ₹{product.basePrice.toLocaleString('en-IN')}
-                </p>
-              </div>
-            </Link>
+            <ProductCard key={product._id} product={product} />
           ))}
         </div>
       )}

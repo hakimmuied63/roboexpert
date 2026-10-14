@@ -22,6 +22,35 @@ const paymentStyles: Record<string, string> = {
   failed: 'bg-red-50 text-red-700',
   refunded: 'bg-gray-50 text-gray-700',
 };
+// UTM source → color + label
+function utmLabel(order: AdminOrder): { label: string; color: string } {
+  const utm = (order as any).utm;
+  if (!utm) return { label: 'DIRECT', color: 'bg-gray-100 text-gray-500' };
+
+  const source = utm.source ?? utm.referrer ?? 'direct';
+
+  const colorMap: Record<string, string> = {
+    facebook: 'bg-blue-50 text-blue-700',
+    instagram: 'bg-pink-50 text-pink-700',
+    google: 'bg-red-50 text-red-700',
+    twitter: 'bg-sky-50 text-sky-700',
+    linkedin: 'bg-indigo-50 text-indigo-700',
+    whatsapp: 'bg-green-50 text-green-700',
+    youtube: 'bg-red-50 text-red-700',
+  };
+
+  const sourceLower = String(source).toLowerCase();
+  const color =
+    colorMap[sourceLower] ??
+    (sourceLower === 'direct'
+      ? 'bg-gray-100 text-gray-600'
+      : 'bg-purple-50 text-purple-700');
+
+  return {
+    label: String(source).toUpperCase(),
+    color,
+  };
+}
 
 export function AdminOrders() {
   const [orders, setOrders] = useState<AdminOrder[]>([]);
@@ -93,6 +122,7 @@ export function AdminOrders() {
                 <th className="px-6 py-3">Seller</th>
                 <th className="px-6 py-3">Buyer</th>
                 <th className="px-6 py-3">Amount</th>
+                <th className="px-6 py-3">Source</th>
                 <th className="px-6 py-3">Status</th>
                 <th className="px-6 py-3">Payment</th>
                 <th className="px-6 py-3">Date</th>
@@ -113,6 +143,19 @@ export function AdminOrders() {
                   </td>
                   <td className="px-6 py-4 text-sm text-surface-900 font-medium">
                     ₹{order.total.toLocaleString('en-IN')}
+                  </td>
+                  <td className="px-6 py-4">
+                    {(() => {
+                      const utm = utmLabel(order);
+                      return (
+                        <span
+                          className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${utm.color}`}
+                          title={(order as any).utm?.campaign ?? ''}
+                        >
+                          {utm.label}
+                        </span>
+                      );
+                    })()}
                   </td>
                   <td className="px-6 py-4">
                     <span

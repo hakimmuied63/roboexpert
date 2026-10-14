@@ -13,7 +13,7 @@ export function BuyerLayout() {
   const isStorefront = location.pathname.startsWith('/shop/');
 
   return (
-    <div className="min-h-screen flex flex-col bg-surface-50">
+    <div className="min-h-screen flex flex-col bg-[#F4F3FB]">
       <AnnouncementBar />
       <div className="sticky top-0 z-40">
         <Header categories={categories} />

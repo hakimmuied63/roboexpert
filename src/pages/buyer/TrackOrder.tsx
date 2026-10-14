@@ -9,12 +9,14 @@ import {
   RotateCcw,
   X,
   AlertTriangle,
+  FileText,
 } from 'lucide-react';
 import { Button, Input, LoadingSpinner } from '../../components/ui';
 import {
   trackOrder as trackOrderApi,
   cancelOrder as cancelOrderApi,
   requestReturn as requestReturnApi,
+  getInvoiceUrl,
   type TrackedOrder,
   type TrackedOrderItem,
 } from '../../lib/api';
@@ -344,8 +346,20 @@ export function TrackOrder() {
               </div>
             )}
 
-            {/* Actions */}
-            <div className="flex gap-3 pt-4 border-t border-surface-100">
+                        {/* Actions */}
+                        <div className="flex gap-3 pt-4 border-t border-surface-100 flex-wrap">
+              <a
+                href={getInvoiceUrl(order.orderNumber, order.buyer.email)}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                <Button
+                  variant="outline"
+                  icon={<FileText className="w-4 h-4" />}
+                >
+                  Download Invoice
+                </Button>
+              </a>
               {canCancel && (
                 <Button
                   variant="outline"
