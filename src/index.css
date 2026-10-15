@@ -284,3 +284,12 @@
 .animate-float-3 {
   animation: floatSlow3 6s ease-in-out infinite;
 }
+
+@keyframes dash-drawer-in {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}

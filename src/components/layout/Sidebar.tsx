@@ -8,7 +8,6 @@ import {
   LogOut,
   Store,
   ChevronLeft,
-  Menu,
   Users,
   ListChecks,
   BarChart3,
@@ -18,6 +17,7 @@ import {
 import { useState, useEffect } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { fetchAdminSellers } from '../../lib/api';
+
 interface SidebarLink {
   to: string;
   icon: React.ReactNode;
@@ -27,6 +27,8 @@ interface SidebarLink {
 
 interface SidebarProps {
   type: 'seller' | 'admin';
+  collapsible?: boolean;
+  onNavigate?: () => void;
 }
 
 const sellerLinks: SidebarLink[] = [
@@ -47,16 +49,16 @@ const adminLinks: SidebarLink[] = [
   { to: '/admin/categories', icon: <Tag className="w-5 h-5" />, label: 'Packaging' },
   { to: '/admin/leads', icon: <UserPlus className="w-5 h-5" />, label: 'Leads' },
 ];
-export function Sidebar({ type }: SidebarProps) {
+
+export function Sidebar({ type, collapsible = false, onNavigate }: SidebarProps) {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const [collapsed, setCollapsed] = useState(false);
-  const [mobileOpen, setMobileOpen] = useState(false);
   const [pendingSellersCount, setPendingSellersCount] = useState(0);
 
+  const isCollapsed = collapsible && collapsed;
   const links = type === 'seller' ? sellerLinks : adminLinks;
 
-  // Fetch pending sellers count for admin
   useEffect(() => {
     if (type !== 'admin') return;
 
@@ -66,90 +68,89 @@ export function Sidebar({ type }: SidebarProps) {
     };
 
     loadCount();
-
-    // Refresh every 60 seconds
     const interval = setInterval(loadCount, 60000);
     return () => clearInterval(interval);
   }, [type]);
 
   const handleLogout = () => {
+    onNavigate?.();
     logout();
     navigate('/');
   };
 
-  const sidebarContent = (
-    <div className="flex flex-col h-full">
-      {/* Header */}
+  return (
+    <div className={`flex h-full flex-col ${isCollapsed ? 'w-[72px]' : 'w-72 lg:w-64'}`}>
       <div className="flex items-center justify-between p-4 border-b border-surface-200">
-        <div className={`flex items-center gap-2 ${collapsed ? 'justify-center w-full' : ''}`}>
+        <div className={`flex items-center gap-2 ${isCollapsed ? 'justify-center w-full' : ''}`}>
           <div className="w-8 h-8 rounded-lg bg-primary-600 flex items-center justify-center flex-shrink-0">
-            <Store className="w-5 h-5 text-white" />
+            <Store className="w-5 h-5 text-white" aria-hidden />
           </div>
-          {!collapsed && (
+          {!isCollapsed && (
             <div>
               <p className="text-sm font-bold text-surface-900">
                 roboexpert<span className="text-primary-600">.in</span>
               </p>
-              <p className="text-[10px] text-surface-400 uppercase tracking-wider">
+              <p className="text-[10px] font-medium uppercase tracking-wider text-surface-600">
                 {type === 'seller' ? 'Seller Panel' : 'Admin Panel'}
               </p>
             </div>
           )}
         </div>
-        <button
-          onClick={() => setCollapsed(!collapsed)}
-          className="hidden lg:flex p-1.5 rounded-lg text-surface-400 hover:bg-surface-100 transition-colors cursor-pointer"
-          aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-        >
-          <ChevronLeft className={`w-4 h-4 transition-transform ${collapsed ? 'rotate-180' : ''}`} />
-        </button>
+        {collapsible && (
+          <button
+            type="button"
+            onClick={() => setCollapsed(!collapsed)}
+            className="hidden lg:flex p-1.5 rounded-lg text-surface-600 hover:bg-surface-100 transition-colors cursor-pointer"
+            aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+          >
+            <ChevronLeft className={`w-4 h-4 transition-transform ${collapsed ? 'rotate-180' : ''}`} />
+          </button>
+        )}
       </div>
 
-      {/* User info */}
-      {!collapsed && user && (
+      {!isCollapsed && user && (
         <div className="p-4 border-b border-surface-100">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-full bg-primary-100 flex items-center justify-center overflow-hidden flex-shrink-0">
-            <span className="text-sm font-medium text-primary-600">
-              {user.name.charAt(0)}
-             </span>
+              <span className="text-sm font-medium text-primary-600">
+                {user.name.charAt(0)}
+              </span>
             </div>
             <div className="min-w-0">
               <p className="text-sm font-medium text-surface-900 truncate">{user.name}</p>
-              <p className="text-xs text-surface-500 truncate">{user.email}</p>
+              <p className="text-xs text-surface-600 truncate">{user.email}</p>
             </div>
           </div>
         </div>
       )}
 
-            {/* Navigation */}
-            <nav className="flex-1 p-3 space-y-1 overflow-y-auto">
-        {links.map(link => {
+      <nav className="flex-1 p-3 space-y-1 overflow-y-auto" aria-label="Dashboard">
+        {links.map((link) => {
           const showBadge = link.badgeKey === 'pendingSellers' && pendingSellersCount > 0;
           return (
             <NavLink
               key={link.to}
               to={link.to}
               end={link.to === '/seller' || link.to === '/admin'}
-              onClick={() => setMobileOpen(false)}
+              onClick={() => onNavigate?.()}
               className={({ isActive }) => `
-                relative flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium
+                relative flex items-center gap-3 min-h-11 px-3 py-2.5 rounded-lg text-sm font-medium
                 transition-all duration-200
-                ${collapsed ? 'justify-center' : ''}
+                ${isCollapsed ? 'justify-center' : ''}
                 ${isActive
                   ? 'bg-primary-50 text-primary-700'
                   : 'text-surface-600 hover:bg-surface-50 hover:text-surface-900'}
               `}
-              title={collapsed ? link.label : undefined}
+              title={isCollapsed ? link.label : undefined}
             >
               <span className="relative">
                 {link.icon}
-                {collapsed && showBadge && (
+                {isCollapsed && showBadge && (
                   <span className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-danger-500 ring-2 ring-white" />
                 )}
               </span>
 
-              {!collapsed && (
+              {!isCollapsed && (
                 <>
                   <span className="flex-1">{link.label}</span>
                   {showBadge && (
@@ -163,61 +164,23 @@ export function Sidebar({ type }: SidebarProps) {
           );
         })}
       </nav>
-      {/* Bottom */}
+
       <div className="p-3 border-t border-surface-200">
         <button
+          type="button"
           onClick={handleLogout}
           className={`
-            flex items-center gap-3 w-full px-3 py-2.5 rounded-lg text-sm font-medium
+            flex items-center gap-3 w-full min-h-11 px-3 py-2.5 rounded-lg text-sm font-medium
             text-surface-600 hover:bg-danger-50 hover:text-danger-600 transition-colors
             cursor-pointer
-            ${collapsed ? 'justify-center' : ''}
+            ${isCollapsed ? 'justify-center' : ''}
           `}
-          title={collapsed ? 'Sign Out' : undefined}
+          title={isCollapsed ? 'Sign Out' : undefined}
         >
           <LogOut className="w-5 h-5" />
-          {!collapsed && <span>Sign Out</span>}
+          {!isCollapsed && <span>Sign Out</span>}
         </button>
       </div>
     </div>
-  );
-
-  return (
-    <>
-      {/* Mobile trigger */}
-      <button
-        className="lg:hidden fixed top-20 left-4 z-50 p-2 bg-white rounded-lg shadow-lg border border-surface-200 cursor-pointer"
-        onClick={() => setMobileOpen(true)}
-        aria-label="Open sidebar"
-      >
-        <Menu className="w-5 h-5 text-surface-700" />
-      </button>
-
-      {/* Mobile overlay */}
-      {mobileOpen && (
-        <div
-          className="lg:hidden fixed inset-0 z-50 bg-black/50 backdrop-blur-sm"
-          onClick={() => setMobileOpen(false)}
-        >
-          <div
-            className="w-72 h-full bg-white shadow-xl"
-            onClick={e => e.stopPropagation()}
-          >
-            {sidebarContent}
-          </div>
-        </div>
-      )}
-
-      {/* Desktop sidebar */}
-      <aside
-        className={`
-          hidden lg:flex flex-col h-screen bg-white border-r border-surface-200
-          transition-all duration-300 sticky top-0
-          ${collapsed ? 'w-[72px]' : 'w-64'}
-        `}
-      >
-        {sidebarContent}
-      </aside>
-    </>
   );
 }
