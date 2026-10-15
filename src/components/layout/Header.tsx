@@ -8,6 +8,9 @@ import {
   Store,
   ChevronDown,
   Heart,
+  Menu,
+  X,
+  Package,
 } from 'lucide-react';
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
@@ -31,6 +34,7 @@ export function Header({ categories = [] }: Props) {
   const location = useLocation();
   const isStorefront = location.pathname.startsWith('/shop/');
   const [userMenuOpen, setUserMenuOpen] = useState(false);
+  const [navOpen, setNavOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchCategory, setSearchCategory] = useState('');
   const userMenuRef = useRef<HTMLDivElement>(null);
@@ -49,8 +53,18 @@ export function Header({ categories = [] }: Props) {
         setUserMenuOpen(false);
       }
     }
+    function handleKey(e: KeyboardEvent) {
+      if (e.key === 'Escape') {
+        setUserMenuOpen(false);
+        setNavOpen(false);
+      }
+    }
     document.addEventListener('mousedown', handleClick);
-    return () => document.removeEventListener('mousedown', handleClick);
+    document.addEventListener('keydown', handleKey);
+    return () => {
+      document.removeEventListener('mousedown', handleClick);
+      document.removeEventListener('keydown', handleKey);
+    };
   }, []);
 
   useEffect(() => {
@@ -155,7 +169,7 @@ export function Header({ categories = [] }: Props) {
     <div className="relative w-full" ref={searchContainerRef}>
       <div className="flex items-center rounded-full border border-[#E6E6F0] bg-[#F4F3FB]/80 hover:bg-[#F4F3FB] focus-within:bg-white focus-within:border-[#4F46FF] focus-within:ring-2 focus-within:ring-[#4F46FF]/15 transition-all duration-200 overflow-hidden p-1 pl-3 sm:pl-4">
         {categories.length > 0 && (
-          <>
+          <div className="hidden md:flex items-center shrink-0">
             <label className="sr-only" htmlFor="header-search-category">
               Search in category
             </label>
@@ -163,7 +177,7 @@ export function Header({ categories = [] }: Props) {
               id="header-search-category"
               value={searchCategory}
               onChange={(e) => setSearchCategory(e.target.value)}
-              className="max-w-[7.5rem] sm:max-w-[8.5rem] shrink-0 bg-transparent text-xs font-semibold text-[#14122B] border-0 border-r border-[#E6E6F0] pr-2 py-2 cursor-pointer focus:outline-none focus:ring-0"
+              className="max-w-[8.5rem] shrink-0 bg-transparent text-xs font-semibold text-[#14122B] border-0 border-r border-[#E6E6F0] pr-2 py-2 cursor-pointer focus:outline-none focus:ring-0"
             >
               <option value="">All Categories</option>
               {categories.map((cat) => (
@@ -172,7 +186,7 @@ export function Header({ categories = [] }: Props) {
                 </option>
               ))}
             </select>
-          </>
+          </div>
         )}
         <input
           type="search"
@@ -182,13 +196,14 @@ export function Header({ categories = [] }: Props) {
             setDropdownOpen(true);
           }}
           onFocus={() => setDropdownOpen(true)}
-          placeholder="Search products, brands, categories..."
-          className="w-full pl-2.5 pr-2 py-1.5 sm:py-2 bg-transparent text-sm text-[#14122B] placeholder:text-surface-500 focus:outline-none"
+          placeholder="Search products"
+          className="w-full min-w-0 pl-2.5 pr-2 py-1.5 sm:py-2 bg-transparent text-sm text-[#14122B] placeholder:text-surface-600 focus:outline-none"
           aria-label="Search products"
         />
         <button
           type="submit"
-          className="inline-flex items-center justify-center gap-1.5 px-4 sm:px-5 py-2 sm:py-2.5 rounded-full bg-gradient-to-r from-[#4F46FF] to-[#7A5CFF] text-white text-xs sm:text-sm font-semibold shadow-[0_4px_12px_rgba(79,70,255,0.25)] hover:shadow-[0_6px_16px_rgba(79,70,255,0.35)] hover:-translate-y-0.5 active:translate-y-0 transition-all shrink-0 cursor-pointer"
+          className="inline-flex items-center justify-center gap-1.5 tap-target px-3 sm:px-5 rounded-full bg-gradient-to-r from-[#4F46FF] to-[#7A5CFF] text-white text-xs sm:text-sm font-semibold shadow-[0_4px_12px_rgba(79,70,255,0.25)] hover:shadow-[0_6px_16px_rgba(79,70,255,0.35)] hover:-translate-y-0.5 active:translate-y-0 transition-all shrink-0 cursor-pointer"
+          aria-label="Search"
         >
           <Search className="w-3.5 h-3.5" aria-hidden />
           <span className="hidden sm:inline">Search</span>
@@ -209,50 +224,52 @@ export function Header({ categories = [] }: Props) {
     </div>
   );
 
+  const iconBtn =
+    'relative inline-flex items-center justify-center tap-target rounded-full text-[#14122B] hover:bg-[#F4F3FB] hover:text-[#4F46FF] transition-all duration-200';
+
   return (
     <header className="bg-white/95 backdrop-blur-md border-b border-[#E6E6F0] shadow-[0_4px_25px_rgba(79,70,255,0.06)] relative z-40">
-      <div className="max-w-7xl mx-auto px-4">
-        <div className="flex flex-wrap md:flex-nowrap items-center gap-3 sm:gap-4 py-3 md:py-0 md:h-18">
-          {/* Logo */}
-          <Link to="/" className="flex items-center gap-2.5 shrink-0 group">
-            <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-2xl bg-gradient-to-tr from-[#4F46FF] to-[#7A5CFF] flex items-center justify-center text-white shadow-[0_4px_14px_rgba(79,70,255,0.35)] group-hover:shadow-[0_6px_18px_rgba(79,70,255,0.45)] group-hover:-translate-y-0.5 transition-all">
-              <Store className="w-5 h-5" aria-hidden />
+      <div className="page-wrap">
+        <div className="flex flex-nowrap items-center gap-1 sm:gap-3 h-16 max-h-16">
+          <button
+            type="button"
+            className="lg:hidden inline-flex items-center justify-center tap-target rounded-full text-[#14122B] hover:bg-[#F4F3FB] shrink-0 cursor-pointer"
+            aria-label={navOpen ? 'Close menu' : 'Open menu'}
+            aria-expanded={navOpen}
+            onClick={() => setNavOpen((open) => !open)}
+          >
+            {navOpen ? <X className="w-5 h-5" aria-hidden /> : <Menu className="w-5 h-5" aria-hidden />}
+          </button>
+
+          <Link to="/" className="flex items-center gap-2 shrink-0 min-w-0 group">
+            <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-2xl bg-gradient-to-tr from-[#4F46FF] to-[#7A5CFF] flex items-center justify-center text-white shadow-[0_4px_14px_rgba(79,70,255,0.35)] group-hover:shadow-[0_6px_18px_rgba(79,70,255,0.45)] transition-all">
+              <Store className="w-4 h-4 sm:w-5 sm:h-5" aria-hidden />
             </div>
-            <span className="text-xl sm:text-2xl font-extrabold tracking-tight font-display text-[#14122B]">
-              roboexpert<span className="text-[#4F46FF]">.in</span>
+            <span className="hidden min-[380px]:inline text-base sm:text-xl font-extrabold tracking-tight font-display text-[#14122B] truncate">
+              roboexpert<span className="hidden sm:inline text-[#4F46FF]">.in</span>
             </span>
           </Link>
 
-          {/* Search bar */}
           {!isStorefront && (
-            <form onSubmit={handleSearch} className="w-full md:flex-1 md:max-w-2xl order-3 md:order-none">
+            <form onSubmit={handleSearch} className="hidden md:block flex-1 max-w-2xl min-w-0">
               {searchField}
             </form>
           )}
 
-          {/* Right Action Icons & Auth */}
-          <div className="flex items-center gap-1.5 sm:gap-2 ml-auto shrink-0">
-            <Link
-              to="/wishlist"
-              className="relative p-2.5 rounded-full text-[#14122B] hover:bg-[#F4F3FB] hover:text-[#4F46FF] transition-all duration-200"
-              aria-label="Wishlist"
-            >
-              <Heart className="w-5 h-5" />
+          <div className="flex items-center gap-0 sm:gap-1 ml-auto shrink-0">
+            <Link to="/wishlist" className={iconBtn} aria-label="Wishlist">
+              <Heart className="w-5 h-5" aria-hidden />
               {wishlistItems.length > 0 && (
-                <span className="absolute -top-0.5 -right-0.5 min-w-5 h-5 px-1 bg-gradient-to-r from-[#FF6A2B] to-[#FF8A3D] text-white text-[10px] font-bold rounded-full flex items-center justify-center shadow-sm">
+                <span className="absolute top-1 right-1 min-w-4 h-4 px-1 bg-gradient-to-r from-[#FF6A2B] to-[#FF8A3D] text-white text-[10px] font-bold rounded-full flex items-center justify-center">
                   {wishlistItems.length > 9 ? '9+' : wishlistItems.length}
                 </span>
               )}
             </Link>
 
-            <Link
-              to="/cart"
-              className="relative p-2.5 rounded-full text-[#14122B] hover:bg-[#F4F3FB] hover:text-[#4F46FF] transition-all duration-200"
-              aria-label="Shopping cart"
-            >
-              <ShoppingCart className="w-5 h-5" />
+            <Link to="/cart" className={iconBtn} aria-label="Shopping cart">
+              <ShoppingCart className="w-5 h-5" aria-hidden />
               {totalItems > 0 && (
-                <span className="absolute -top-0.5 -right-0.5 min-w-5 h-5 px-1 bg-gradient-to-r from-[#4F46FF] to-[#7A5CFF] text-white text-[10px] font-bold rounded-full flex items-center justify-center shadow-sm">
+                <span className="absolute top-1 right-1 min-w-4 h-4 px-1 bg-gradient-to-r from-[#4F46FF] to-[#7A5CFF] text-white text-[10px] font-bold rounded-full flex items-center justify-center">
                   {totalItems > 9 ? '9+' : totalItems}
                 </span>
               )}
@@ -263,7 +280,7 @@ export function Header({ categories = [] }: Props) {
                 <button
                   type="button"
                   onClick={() => setUserMenuOpen(!userMenuOpen)}
-                  className="flex items-center gap-2 p-1.5 sm:p-2 rounded-full hover:bg-[#F4F3FB] transition-all duration-200 cursor-pointer"
+                  className="flex items-center justify-center gap-2 tap-target rounded-full hover:bg-[#F4F3FB] transition-all duration-200 cursor-pointer"
                   aria-label="Account menu"
                   aria-expanded={userMenuOpen}
                 >
@@ -273,7 +290,7 @@ export function Header({ categories = [] }: Props) {
                   <span className="hidden lg:block text-sm font-semibold text-[#14122B]">
                     {user.name}
                   </span>
-                  <ChevronDown className="hidden lg:block w-4 h-4 text-surface-500" />
+                  <ChevronDown className="hidden lg:block w-4 h-4 text-surface-600" />
                 </button>
 
                 {userMenuOpen && (
@@ -320,32 +337,78 @@ export function Header({ categories = [] }: Props) {
                 )}
               </div>
             ) : (
-              <div className="flex items-center gap-1.5 sm:gap-2">
+              <div className="flex items-center gap-0 sm:gap-1">
                 <Link
                   to="/login"
-                  className="hidden sm:inline-flex px-4 py-2 text-sm font-semibold text-[#14122B] hover:text-[#4F46FF] hover:bg-[#F4F3FB] rounded-full transition-all duration-200"
+                  className="hidden sm:inline-flex min-h-11 items-center px-4 py-2 text-sm font-semibold text-[#14122B] hover:text-[#4F46FF] hover:bg-[#F4F3FB] rounded-full transition-all duration-200"
                 >
                   Log In
                 </Link>
-                <Link
-                  to="/login"
-                  className="sm:hidden p-2 rounded-full text-[#14122B] hover:bg-[#F4F3FB]"
-                  aria-label="Log in"
-                >
-                  <User className="w-5 h-5" />
+                <Link to="/login" className={`sm:hidden ${iconBtn}`} aria-label="Account">
+                  <User className="w-5 h-5" aria-hidden />
                 </Link>
                 <Link
                   to="/seller/signup"
-                  className="inline-flex items-center justify-center gap-1.5 px-4 sm:px-5 py-2 sm:py-2.5 text-xs sm:text-sm font-bold text-white bg-gradient-to-r from-[#FF6A2B] to-[#FF8A3D] rounded-full shadow-[0_4px_14px_rgba(255,106,43,0.3)] hover:shadow-[0_8px_22px_rgba(255,106,43,0.4)] hover:-translate-y-0.5 active:translate-y-0 transition-all duration-200"
+                  className="inline-flex items-center justify-center tap-target sm:min-w-0 sm:px-5 rounded-full text-white bg-gradient-to-r from-[#FF6A2B] to-[#FF8A3D] shadow-[0_4px_14px_rgba(255,106,43,0.3)] hover:shadow-[0_8px_22px_rgba(255,106,43,0.4)] transition-all duration-200"
+                  aria-label="Sell"
                 >
-                  <Store className="w-3.5 h-3.5" />
-                  Sell
+                  <Store className="w-4 h-4" aria-hidden />
+                  <span className="hidden sm:inline text-sm font-bold ml-1.5">Sell</span>
                 </Link>
               </div>
             )}
           </div>
         </div>
       </div>
+
+      {!isStorefront && (
+        <div className="md:hidden border-t border-[#E6E6F0] py-2">
+          <form onSubmit={handleSearch} className="page-wrap">
+            {searchField}
+          </form>
+        </div>
+      )}
+
+      {navOpen && (
+        <div className="lg:hidden border-t border-[#E6E6F0] bg-white">
+          <nav className="page-wrap py-3 flex flex-col gap-1" aria-label="Mobile menu">
+            <Link
+              to="/search"
+              onClick={() => setNavOpen(false)}
+              className="flex items-center gap-3 min-h-11 px-2 rounded-xl text-sm font-semibold text-[#14122B] hover:bg-[#F4F3FB]"
+            >
+              <Search className="w-4 h-4 text-[#4F46FF]" aria-hidden />
+              Browse products
+            </Link>
+            <Link
+              to="/track-order"
+              onClick={() => setNavOpen(false)}
+              className="flex items-center gap-3 min-h-11 px-2 rounded-xl text-sm font-semibold text-[#14122B] hover:bg-[#F4F3FB]"
+            >
+              <Package className="w-4 h-4 text-[#4F46FF]" aria-hidden />
+              Track order
+            </Link>
+            <Link
+              to="/seller/signup"
+              onClick={() => setNavOpen(false)}
+              className="flex items-center gap-3 min-h-11 px-2 rounded-xl text-sm font-semibold text-[#14122B] hover:bg-[#F4F3FB]"
+            >
+              <Store className="w-4 h-4 text-[#FF6A2B]" aria-hidden />
+              Sell on Roboexpert
+            </Link>
+            {categories.slice(0, 8).map((cat) => (
+              <Link
+                key={cat._id}
+                to={`/category/${cat.slug}`}
+                onClick={() => setNavOpen(false)}
+                className="flex items-center min-h-11 px-2 rounded-xl text-sm font-medium text-surface-700 hover:bg-[#F4F3FB]"
+              >
+                {cat.name}
+              </Link>
+            ))}
+          </nav>
+        </div>
+      )}
     </header>
   );
 }

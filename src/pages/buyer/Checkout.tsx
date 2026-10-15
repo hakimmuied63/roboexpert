@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useCart } from '../../contexts/CartContext';
 import { Button, Input, Select } from '../../components/ui';
 import { placeOrder, createPaymentOrder, verifyPayment } from '../../lib/api';
+import OtpPopup from '../../components/ui/OtpPopup';
 import { getStoredUtm } from '../../lib/utm';
 import toast from 'react-hot-toast';
 import {
@@ -12,6 +13,7 @@ import {
   CreditCard,
   Banknote,
 } from 'lucide-react';
+
 
 declare global {
   interface Window {
@@ -23,6 +25,7 @@ export function Checkout() {
   const { items, totalPrice, clearCart } = useCart();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
+  const [showOtp, setShowOtp] = useState(false);
   const [step, setStep] = useState<1 | 2>(1);
   const [paymentMethod, setPaymentMethod] = useState<'cod' | 'online'>('online');
 
@@ -67,8 +70,15 @@ export function Checkout() {
     e.preventDefault();
     if (validateShipping()) setStep(2);
   };
+  const handlePlaceOrder = () => {
+    if (!form.email) {
+      toast.error('Please enter your email first.');
+      return;
+    }
+    setShowOtp(true);
+  };
 
-  const handlePlaceOrder = async () => {
+  const executeOrder = async () => {
     setLoading(true);
 
     try {
@@ -560,8 +570,20 @@ export function Checkout() {
               <p>Safe and secure payments. 100% Authentic products.</p>
             </div>
           </div>
-        </div>
+        a </div>
       </div>
+
+      {showOtp && (
+        <OtpPopup
+          email={form.email}
+          purpose="checkout"
+          onVerified={() => {
+            setShowOtp(false);
+            void executeOrder();
+          }}
+          onClose={() => setShowOtp(false)}
+        />
+      )}
     </div>
   );
 }

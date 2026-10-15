@@ -11,7 +11,35 @@ export function isVisibleMarketplaceCategory(cat: Category): boolean {
 }
 
 export function formatInr(amount: number): string {
-  return `₹${amount.toLocaleString('en-IN')}`;
+  return amount.toLocaleString('en-IN', {
+    style: 'currency',
+    currency: 'INR',
+  });
+}
+
+export function getPublicSiteOrigin(): string {
+  const envUrl = String(import.meta.env.VITE_PUBLIC_SITE_URL ?? '').trim();
+  const fallback =
+    typeof window !== 'undefined' ? window.location.origin : '';
+  const raw = (envUrl || fallback).replace(/\/+$/, '');
+
+  try {
+    const url = new URL(raw);
+    const host = url.hostname;
+    const isLocal =
+      host === 'localhost' || host === '127.0.0.1' || host === '::1';
+    if (!isLocal) {
+      url.protocol = 'https:';
+    }
+    return url.origin;
+  } catch {
+    return raw;
+  }
+}
+
+export function getShopUrl(storeSlug: string): string {
+  const slug = storeSlug.replace(/^\/+|\/+$/g, '');
+  return `${getPublicSiteOrigin()}/shop/${slug}`;
 }
 
 export function getCompareAtPrice(product: Product): number | undefined {

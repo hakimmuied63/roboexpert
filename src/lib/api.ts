@@ -1538,3 +1538,45 @@ export const createLead = async (
     return false;
   }
 };
+// ---------- OTP ----------
+
+export type SendOtpResult =
+  | { ok: true; message: string }
+  | { ok: false; error: string };
+
+export type VerifyOtpResult =
+  | { ok: true; message: string }
+  | { ok: false; error: string };
+
+export const sendOtp = async (
+  email: string,
+  purpose: 'checkout' | 'signup' | 'password_reset' = 'checkout',
+): Promise<SendOtpResult> => {
+  try {
+    const res = await fetch(`${API_BASE}/otp/send`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, purpose }),
+    });
+    return await res.json();
+  } catch {
+    return { ok: false, error: 'Network error. Please try again.' };
+  }
+};
+
+export const verifyOtp = async (
+  email: string,
+  code: string,
+  purpose: 'checkout' | 'signup' | 'password_reset' = 'checkout',
+): Promise<VerifyOtpResult> => {
+  try {
+    const res = await fetch(`${API_BASE}/otp/verify`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, code, purpose }),
+    });
+    return await res.json();
+  } catch {
+    return { ok: false, error: 'Network error. Please try again.' };
+  }
+};

@@ -80,6 +80,7 @@
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     scroll-behavior: smooth;
+    overflow-x: clip;
   }
 
   body {
@@ -88,6 +89,8 @@
     background-color: #F4F3FB;
     line-height: 1.6;
     margin: 0;
+    overflow-x: clip;
+    min-height: 100dvh;
   }
 
   h1, h2, h3, h4, h5, h6, .font-display {
@@ -96,6 +99,7 @@
     letter-spacing: -0.03em;
     line-height: 1.15;
     color: #14122B;
+    text-wrap: balance;
   }
 
   img {
@@ -195,6 +199,49 @@
   }
   .scrollbar-hide::-webkit-scrollbar {
     display: none;
+  }
+
+  .page-wrap {
+    width: 100%;
+    max-width: 1280px;
+    margin-inline: auto;
+    padding-inline: 1rem;
+  }
+
+  @media (min-width: 640px) {
+    .page-wrap {
+      padding-inline: 1.25rem;
+    }
+  }
+
+  .text-balance {
+    text-wrap: balance;
+  }
+
+  .chip-fade-right {
+    position: relative;
+  }
+
+  .chip-fade-right::after {
+    content: '';
+    pointer-events: none;
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    width: 2.5rem;
+    background: linear-gradient(to left, #ffffff 10%, transparent);
+  }
+
+  @media (min-width: 1024px) {
+    .chip-fade-right::after {
+      display: none;
+    }
+  }
+
+  .tap-target {
+    min-width: 44px;
+    min-height: 44px;
   }
 }
 
