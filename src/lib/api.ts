@@ -809,6 +809,21 @@ export type SellerStats = {
     status: string;
     paymentMethod: 'cod' | 'online';
     paymentStatus: string;
+
+    // Returns
+    returnStatus?: 'requested' | 'approved' | 'rejected' | 'completed' | null;
+    returnReason?: string | null;
+    returnNote?: string | null;
+    returnRequestedAt?: string | null;
+    returnResolvedAt?: string | null;
+
+    // Refunds
+    refundStatus?: 'none' | 'pending' | 'completed' | 'failed' | null;
+    refundId?: string | null;
+    refundAmount?: number | null;
+    refundedAt?: string | null;
+    refundFailureReason?: string | null;
+
     createdAt: string;
     updatedAt: string;
   };
@@ -939,6 +954,23 @@ export const fetchSellerOrderItems = async (
       return res.ok;
     } catch (error) {
       console.error('updateSellerOrderStatus error:', error);
+      return false;
+    }
+  };
+  export const updateSellerReturnStatus = async (
+    orderId: string,
+    action: 'approve' | 'reject' | 'received',
+    note?: string
+  ): Promise<boolean> => {
+    try {
+      const res = await authFetch(`${API_BASE}/orders/my/${orderId}/return`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action, ...(note ? { note } : {}) }),
+      });
+      return res.ok;
+    } catch (error) {
+      console.error('updateSellerReturnStatus error:', error);
       return false;
     }
   };
@@ -1356,6 +1388,11 @@ export type TrackedOrder = {
   returnNote?: string | null;
   returnRequestedAt?: string | null;
   returnResolvedAt?: string | null;
+  refundStatus?: 'none' | 'pending' | 'completed' | 'failed' | null;
+  refundId?: string | null;
+  refundAmount?: number | null;
+  refundedAt?: string | null;
+  refundFailureReason?: string | null;
   createdAt: string;
   updatedAt: string;
 };

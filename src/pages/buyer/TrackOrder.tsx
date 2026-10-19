@@ -333,16 +333,72 @@ export function TrackOrder() {
               </div>
             )}
 
-            {/* Return status */}
-            {order.returnStatus && (
+                        {/* Return + Refund status */}
+                        {order.returnStatus && (
               <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 mb-4">
-                <p className="text-sm font-semibold text-amber-900 mb-1">
-                  Return {order.returnStatus.charAt(0).toUpperCase() + order.returnStatus.slice(1)}
-                </p>
-                <p className="text-xs text-amber-700">Reason: {order.returnReason}</p>
+                <div className="flex items-start justify-between flex-wrap gap-2 mb-2">
+                  <p className="text-sm font-semibold text-amber-900">
+                    Return {order.returnStatus.charAt(0).toUpperCase() + order.returnStatus.slice(1)}
+                  </p>
+                  {order.refundStatus && (
+                    <span
+                      className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
+                        order.refundStatus === 'completed'
+                          ? 'bg-green-100 text-green-800'
+                          : order.refundStatus === 'failed'
+                          ? 'bg-red-100 text-red-800'
+                          : 'bg-yellow-100 text-yellow-800'
+                      }`}
+                    >
+                      Refund: {order.refundStatus}
+                    </span>
+                  )}
+                </div>
+
+                {order.returnReason && (
+                  <p className="text-xs text-amber-700">Reason: {order.returnReason}</p>
+                )}
                 {order.returnNote && (
                   <p className="text-xs text-amber-700 mt-1">Note: {order.returnNote}</p>
                 )}
+
+                {order.returnStatus === 'requested' && (
+                  <p className="text-xs text-amber-800 mt-2 font-medium">
+                    Waiting for the seller to review your request.
+                  </p>
+                )}
+                {order.returnStatus === 'approved' && (
+                  <p className="text-xs text-amber-800 mt-2 font-medium">
+                    Approved — please ship the item back to the seller.
+                  </p>
+                )}
+                {order.returnStatus === 'rejected' && (
+                  <p className="text-xs text-red-700 mt-2 font-medium">
+                    Your return request was rejected by the seller.
+                  </p>
+                )}
+                {order.returnStatus === 'completed' && order.refundStatus === 'completed' && (
+                  <p className="text-xs text-green-800 mt-2 font-medium">
+                    Return completed and refund issued
+                    {order.refundAmount != null
+                      ? ` — ₹${order.refundAmount.toLocaleString('en-IN')}`
+                      : ''}
+                    {order.refundId ? ` (Refund ID: ${order.refundId})` : ''}.
+                  </p>
+                )}
+                {order.returnStatus === 'completed' && order.refundStatus === 'failed' && (
+                  <p className="text-xs text-red-700 mt-2 font-medium">
+                    Return completed, but the refund failed. Please contact support — the
+                    seller will retry the refund manually.
+                  </p>
+                )}
+                {order.returnStatus === 'completed' &&
+                  order.paymentMethod === 'cod' &&
+                  order.refundStatus !== 'completed' && (
+                    <p className="text-xs text-green-800 mt-2 font-medium">
+                      Return completed. No refund needed for Cash on Delivery orders.
+                    </p>
+                  )}
               </div>
             )}
 

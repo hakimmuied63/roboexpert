@@ -3,11 +3,12 @@ import {
   fetchSellerOrders,
   fetchSellerOrderItems,
   updateSellerOrderStatus,
+  updateSellerReturnStatus,
   downloadSellerInvoice,
   type SellerOrder,
 } from '../../lib/api';
 import { LoadingSpinner, EmptyState } from '../../components/ui';
-import { ShoppingBag, ChevronDown, Package, FileText } from 'lucide-react';
+import { ShoppingBag, ChevronDown, Package, FileText, RotateCcw } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 type OrderItemDetail = {
@@ -38,6 +39,20 @@ const statusStyles: Record<string, string> = {
   delivered: 'bg-green-50 text-green-700',
   cancelled: 'bg-red-50 text-red-700',
 };
+
+const returnStyles: Record<string, string> = {
+  requested: 'bg-yellow-50 text-yellow-700',
+  approved: 'bg-blue-50 text-blue-700',
+  rejected: 'bg-red-50 text-red-700',
+  completed: 'bg-green-50 text-green-700',
+};
+
+const refundStyles: Record<string, string> = {
+  completed: 'bg-green-50 text-green-700',
+  failed: 'bg-red-50 text-red-700',
+  pending: 'bg-yellow-50 text-yellow-700',
+};
+
 function getUtmSource(order: SellerOrder): string | null {
   const utm = (order as any).utm;
   if (!utm) return null;
@@ -53,10 +68,12 @@ function getUtmSource(order: SellerOrder): string | null {
   return null;
 }
 
+type TabKey = 'all' | 'placed' | 'confirmed' | 'shipped' | 'delivered' | 'returns';
+
 export function SellerOrders() {
   const [orders, setOrders] = useState<SellerOrder[]>([]);
   const [loading, setLoading] = useState(true);
-  const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [tab, setTab] = useState<TabKey>('all');
   const [expandedOrder, setExpandedOrder] = useState<string | null>(null);
   const [itemsByOrder, setItemsByOrder] = useState<Record<string, OrderItemDetail[]>>({});
   const [itemsLoading, setItemsLoading] = useState<string | null>(null);
@@ -114,10 +131,31 @@ export function SellerOrders() {
     );
   };
 
-  const filteredOrders =
-    statusFilter === 'all'
-      ? orders
-      : orders.filter((o) => o.status === statusFilter);
+  const handleReturnAction = async (
+    orderId: string,
+    action: 'approve' | 'reject' | 'received'
+  ) => {
+    setBusyId(orderId);
+    const ok = await updateSellerReturnStatus(orderId, action);
+    setBusyId(null);
+
+    if (!ok) {
+      toast.error(`Could not ${action} return`);
+      return;
+    }
+
+    if (action === 'approve') toast.success('Return approved');
+    else if (action === 'reject') toast.success('Return rejected');
+    else toast.success('Return completed — refund processed if applicable');
+
+    await loadOrders();
+  };
+
+  const filteredOrders = (() => {
+    if (tab === 'all') return orders;
+    if (tab === 'returns') return orders.filter((o) => !!o.returnStatus);
+    return orders.filter((o) => o.status === tab);
+  })();
 
   const statusCounts = {
     all: orders.length,
@@ -125,46 +163,53 @@ export function SellerOrders() {
     confirmed: orders.filter((o) => o.status === 'confirmed').length,
     shipped: orders.filter((o) => o.status === 'shipped').length,
     delivered: orders.filter((o) => o.status === 'delivered').length,
+    returns: orders.filter((o) => !!o.returnStatus).length,
   };
+
+  const tabs: { key: TabKey; label: string; count: number }[] = [
+    { key: 'all', label: 'All', count: statusCounts.all },
+    { key: 'placed', label: 'Placed', count: statusCounts.placed },
+    { key: 'confirmed', label: 'Confirmed', count: statusCounts.confirmed },
+    { key: 'shipped', label: 'Shipped', count: statusCounts.shipped },
+    { key: 'delivered', label: 'Delivered', count: statusCounts.delivered },
+    { key: 'returns', label: 'Returns', count: statusCounts.returns },
+  ];
 
   return (
     <div className="p-6 lg:p-8 space-y-6">
-      {/* Header */}
       <div>
         <h1 className="text-2xl font-bold text-surface-900">Orders</h1>
         <p className="text-surface-500 mt-1">
-          Manage incoming orders and update their status.
+          Manage incoming orders, update their status, and handle returns.
         </p>
       </div>
 
-      {/* Status Tabs */}
       <div className="flex items-center gap-2 overflow-x-auto pb-1">
-        {Object.entries(statusCounts).map(([status, count]) => (
+        {tabs.map((t) => (
           <button
-            key={status}
-            onClick={() => setStatusFilter(status)}
+            key={t.key}
+            onClick={() => setTab(t.key)}
             className={`
               px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-colors cursor-pointer
               ${
-                statusFilter === status
+                tab === t.key
                   ? 'bg-primary-600 text-white shadow-sm'
                   : 'bg-white text-surface-600 border border-surface-200 hover:bg-surface-50'
               }
             `}
           >
-            {status.charAt(0).toUpperCase() + status.slice(1)}
+            {t.label}
             <span
               className={`ml-2 px-1.5 py-0.5 rounded-full text-xs ${
-                statusFilter === status ? 'bg-white/20' : 'bg-surface-100'
+                tab === t.key ? 'bg-white/20' : 'bg-surface-100'
               }`}
             >
-              {count}
+              {t.count}
             </span>
           </button>
         ))}
       </div>
 
-      {/* Orders */}
       {loading ? (
         <LoadingSpinner />
       ) : filteredOrders.length === 0 ? (
@@ -172,9 +217,11 @@ export function SellerOrders() {
           icon={<ShoppingBag className="w-8 h-8 text-surface-400" />}
           title="No orders found"
           description={
-            statusFilter === 'all'
+            tab === 'all'
               ? "You haven't received any orders yet."
-              : `No ${statusFilter} orders.`
+              : tab === 'returns'
+              ? 'No return requests yet.'
+              : `No ${tab} orders.`
           }
         />
       ) : (
@@ -189,7 +236,6 @@ export function SellerOrders() {
                 key={order._id}
                 className="bg-white rounded-xl border border-surface-200 overflow-hidden hover:shadow-sm transition-shadow"
               >
-                {/* Header row */}
                 <div
                   className="flex flex-col sm:flex-row sm:items-center justify-between p-4 sm:p-5 gap-3 cursor-pointer"
                   onClick={() => handleExpand(order._id)}
@@ -219,6 +265,15 @@ export function SellerOrders() {
                         >
                           {order.paymentMethod === 'cod' ? 'COD' : 'Online'}
                         </span>
+                        {order.returnStatus && (
+                          <span
+                            className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
+                              returnStyles[order.returnStatus] ?? 'bg-gray-50 text-gray-700'
+                            }`}
+                          >
+                            Return: {order.returnStatus}
+                          </span>
+                        )}
                         {getUtmSource(order) && (
                           <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-purple-50 text-purple-700">
                             {getUtmSource(order)}
@@ -282,10 +337,111 @@ export function SellerOrders() {
                   </div>
                 </div>
 
-                {/* Expanded details */}
                 {isExpanded && (
                   <div className="border-t border-surface-100 p-5 bg-surface-50 space-y-4">
-                    {/* Items */}
+                    {order.returnStatus && (
+                      <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                        <div className="flex items-start gap-3">
+                          <RotateCcw className="w-5 h-5 text-yellow-700 mt-0.5 shrink-0" />
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 flex-wrap mb-1">
+                              <h4 className="text-sm font-semibold text-yellow-900">
+                                Return {order.returnStatus}
+                              </h4>
+                              {order.returnRequestedAt && (
+                                <span className="text-xs text-yellow-700">
+                                  requested{' '}
+                                  {new Date(order.returnRequestedAt).toLocaleDateString('en-IN')}
+                                </span>
+                              )}
+                              {order.refundStatus && (
+                                <span
+                                  className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
+                                    refundStyles[order.refundStatus] ??
+                                    'bg-gray-50 text-gray-700'
+                                  }`}
+                                >
+                                  Refund: {order.refundStatus}
+                                </span>
+                              )}
+                            </div>
+                            {order.returnReason && (
+                              <p className="text-sm text-yellow-900">
+                                <span className="font-medium">Reason:</span>{' '}
+                                {order.returnReason}
+                              </p>
+                            )}
+                            {order.returnNote && (
+                              <p className="text-sm text-yellow-800 mt-1">
+                                <span className="font-medium">Note:</span> {order.returnNote}
+                              </p>
+                            )}
+                            {order.refundFailureReason && (
+                              <p className="text-sm text-red-700 mt-1">
+                                <span className="font-medium">Refund error:</span>{' '}
+                                {order.refundFailureReason}
+                              </p>
+                            )}
+
+                            <div className="flex items-center gap-2 mt-3 flex-wrap">
+                              {order.returnStatus === 'requested' && (
+                                <>
+                                  <button
+                                    type="button"
+                                    disabled={busyId === order._id}
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleReturnAction(order._id, 'approve');
+                                    }}
+                                    className="px-3 py-1.5 bg-green-600 text-white text-sm font-medium rounded-lg hover:bg-green-700 disabled:opacity-50 transition-colors"
+                                  >
+                                    Approve
+                                  </button>
+                                  <button
+                                    type="button"
+                                    disabled={busyId === order._id}
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleReturnAction(order._id, 'reject');
+                                    }}
+                                    className="px-3 py-1.5 bg-white border border-red-300 text-red-700 text-sm font-medium rounded-lg hover:bg-red-50 disabled:opacity-50 transition-colors"
+                                  >
+                                    Reject
+                                  </button>
+                                </>
+                              )}
+                              {order.returnStatus === 'approved' && (
+                                <button
+                                  type="button"
+                                  disabled={busyId === order._id}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleReturnAction(order._id, 'received');
+                                  }}
+                                  className="px-3 py-1.5 bg-primary-600 text-white text-sm font-medium rounded-lg hover:bg-primary-700 disabled:opacity-50 transition-colors"
+                                >
+                                  Mark Received & Refund
+                                </button>
+                              )}
+                              {order.returnStatus === 'completed' &&
+                                order.refundStatus === 'completed' && (
+                                  <span className="text-xs text-green-700 font-medium">
+                                    Refund issued{' '}
+                                    {order.refundId ? `(${order.refundId})` : ''}
+                                  </span>
+                                )}
+                              {order.returnStatus === 'completed' &&
+                                order.refundStatus === 'failed' && (
+                                  <span className="text-xs text-red-700 font-medium">
+                                    Refund failed — retry from Razorpay dashboard
+                                  </span>
+                                )}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
                     <div>
                       <h4 className="text-xs font-semibold text-surface-500 uppercase tracking-wider mb-3">
                         Order Items
@@ -302,7 +458,10 @@ export function SellerOrders() {
                               className="flex items-center gap-3 bg-white rounded-lg p-3 border border-surface-100"
                             >
                               <img
-                                src={item.productSnapshot.image ?? 'https://via.placeholder.com/40'}
+                                src={
+                                  item.productSnapshot.image ??
+                                  'https://via.placeholder.com/40'
+                                }
                                 alt={item.productSnapshot.name}
                                 className="w-10 h-10 rounded-lg object-cover bg-surface-100"
                                 onError={(e) => {
@@ -315,12 +474,15 @@ export function SellerOrders() {
                                   {item.productSnapshot.name}
                                 </p>
                                 <p className="text-xs text-surface-500">
-                                  {Object.values(item.productSnapshot.variantAttributes).join(' / ')}
+                                  {Object.values(item.productSnapshot.variantAttributes).join(
+                                    ' / '
+                                  )}
                                   {' · '}
                                   SKU: {item.productSnapshot.sku}
                                 </p>
                                 <p className="text-xs text-surface-500">
-                                  Qty: {item.quantity} × ₹{item.unitPrice.toLocaleString('en-IN')}
+                                  Qty: {item.quantity} × ₹
+                                  {item.unitPrice.toLocaleString('en-IN')}
                                 </p>
                               </div>
                               <p className="text-sm font-medium text-surface-900">
@@ -332,7 +494,6 @@ export function SellerOrders() {
                       )}
                     </div>
 
-                    {/* Shipping + Payment */}
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div>
                         <h4 className="text-xs font-semibold text-surface-500 uppercase tracking-wider mb-2">
@@ -367,6 +528,8 @@ export function SellerOrders() {
                               className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
                                 order.paymentStatus === 'paid'
                                   ? 'bg-green-50 text-green-700'
+                                  : order.paymentStatus === 'refunded'
+                                  ? 'bg-blue-50 text-blue-700'
                                   : 'bg-yellow-50 text-yellow-700'
                               }`}
                             >
