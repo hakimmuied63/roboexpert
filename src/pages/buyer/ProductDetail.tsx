@@ -4,6 +4,7 @@ import { Shield, Truck, Share2, ChevronRight, ShoppingCart } from 'lucide-react'
 import { Button, Badge, LoadingSpinner } from '../../components/ui';
 import { useCart } from '../../contexts/CartContext';
 import { WishlistButton } from '../../components/wishlist/WishlistButton';
+import { ReviewsSection } from '../../components/product/ReviewsSection';
 import {
   fetchProductById,
   type Product,
@@ -259,6 +260,12 @@ export function ProductDetail() {
           <p className="text-surface-500">No description provided.</p>
         )}
       </div>
+            {/* Reviews & Ratings */}
+            <ReviewsSection
+        productId={product._id}
+        ratingAverage={(product as any).ratingAverage ?? 0}
+        ratingCount={(product as any).ratingCount ?? 0}
+      />
     </div>
   );
 }

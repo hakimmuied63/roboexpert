@@ -1617,3 +1617,120 @@ export const verifyOtp = async (
     return { ok: false, error: 'Network error. Please try again.' };
   }
 };
+
+// ---------- Reviews ----------
+
+export type Review = {
+  _id: string;
+  productId: string;
+  companyId: string;
+  buyerId: string;
+  buyerName: string;
+  orderId: string;
+  rating: number;
+  comment?: string | null;
+  images: string[];
+  reported: boolean;
+  hidden: boolean;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type ListReviewsResponse = {
+  ok: boolean;
+  reviews: Review[];
+  pagination: {
+    page: number;
+    limit: number;
+    total: number;
+    pages: number;
+  };
+};
+
+export const fetchProductReviews = async (
+  productId: string,
+  page: number = 1,
+  limit: number = 10
+): Promise<ListReviewsResponse> => {
+  try {
+    const res = await fetch(
+      `${API_BASE}/products/${productId}/reviews?page=${page}&limit=${limit}`
+    );
+    if (!res.ok) {
+      return {
+        ok: false,
+        reviews: [],
+        pagination: { page, limit, total: 0, pages: 0 },
+      };
+    }
+    return await res.json();
+  } catch (error) {
+    console.error('fetchProductReviews error:', error);
+    return {
+      ok: false,
+      reviews: [],
+      pagination: { page, limit, total: 0, pages: 0 },
+    };
+  }
+};
+
+export const createProductReview = async (
+  productId: string,
+  payload: { 
+    orderNumber: string; 
+    email: string; 
+    rating: number; 
+    comment?: string; 
+    images?: string[] 
+  }
+): Promise<{ ok: boolean; review?: Review; error?: string }> => {
+  try {
+    const res = await fetch(`${API_BASE}/products/${productId}/reviews`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      return { ok: false, error: data.error || 'Could not submit review' };
+    }
+    return { ok: true, review: data.review };
+  } catch (error) {
+    console.error('createProductReview error:', error);
+    return { ok: false, error: 'Could not submit review' };
+  }
+};
+
+export const reportProductReview = async (
+  reviewId: string,
+  reason: string
+): Promise<boolean> => {
+  try {
+    const res = await authFetch(`${API_BASE}/reviews/${reviewId}/report`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ reason }),
+    });
+    return res.ok;
+  } catch (error) {
+    console.error('reportProductReview error:', error);
+    return false;
+  }
+};
+
+export const uploadReviewImage = async (file: File): Promise<string | null> => {
+  try {
+    const formData = new FormData();
+    formData.append('file', file);
+    const res = await authFetch(`${API_BASE}/upload`, {
+      method: 'POST',
+      body: formData,
+    });
+    if (!res.ok) return null;
+    const data = await res.json();
+    return data.url ?? data.imageUrl ?? null;
+  } catch (error) {
+    console.error('uploadReviewImage error:', error);
+    return null;
+  }
+};
