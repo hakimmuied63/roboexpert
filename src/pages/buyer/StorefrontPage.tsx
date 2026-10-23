@@ -422,12 +422,12 @@ export const StorefrontPage = () => {
             >
               <div className="relative aspect-square bg-gray-100 overflow-hidden">
                 <img
-                  src={product.images[0] ?? 'https://via.placeholder.com/400'}
+                  src={product.images[0] ?? '/placeholder.svg'}
                   alt={product.name}
                   className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                   onError={(e) => {
                     (e.target as HTMLImageElement).src =
-                      'https://via.placeholder.com/400?text=No+Image';
+                      '/placeholder.svg';
                   }}
                 />
                 <div className="absolute top-2 right-2 z-10">

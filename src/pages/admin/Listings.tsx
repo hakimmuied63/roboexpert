@@ -126,12 +126,12 @@ export function AdminListings() {
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-3">
                       <img
-                        src={product.images[0] ?? 'https://via.placeholder.com/40'}
+                      src={product.images[0] ?? '/placeholder.svg'}
                         alt=""
                         className="w-10 h-10 rounded-lg object-cover bg-surface-100"
                         onError={(e) => {
                           (e.target as HTMLImageElement).src =
-                            'https://via.placeholder.com/40?text=—';
+                           '/placeholder.svg';
                         }}
                       />
                       <div>

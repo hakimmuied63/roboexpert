@@ -52,12 +52,12 @@ export function Cart() {
                     <div className="col-span-1 sm:col-span-6 flex gap-4">
                       <Link to={`/product/${item.productId}`} className="flex-shrink-0">
                         <img
-                          src={item.image ?? 'https://via.placeholder.com/96'}
+                          src={item.image ?? '/placeholder.svg'}
                           alt={item.productName}
                           className="w-20 h-20 sm:w-24 sm:h-24 rounded-xl object-cover border border-surface-200"
                           onError={(e) => {
                             (e.target as HTMLImageElement).src =
-                              'https://via.placeholder.com/96?text=No+Image';
+                              '/placeholder.svg';
                           }}
                         />
                       </Link>

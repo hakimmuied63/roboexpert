@@ -173,12 +173,12 @@ export function SellerProducts() {
             >
               <div className="relative aspect-[4/3] bg-surface-100 overflow-hidden">
                 <img
-                  src={product.images[0] ?? 'https://via.placeholder.com/400'}
+                  src={product.images[0] ?? '/placeholder.svg'}
                   alt={product.name}
                   className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                   onError={(e) => {
                     (e.target as HTMLImageElement).src =
-                      'https://via.placeholder.com/400?text=No+Image';
+                     '/placeholder.svg';
                   }}
                 />
                 {!product.isActive && (
@@ -235,12 +235,12 @@ export function SellerProducts() {
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-3">
                       <img
-                        src={product.images[0] ?? 'https://via.placeholder.com/48'}
+                       src={product.images[0] ?? '/placeholder.svg'}
                         alt={product.name}
                         className="w-12 h-12 rounded-lg object-cover bg-surface-100"
                         onError={(e) => {
                           (e.target as HTMLImageElement).src =
-                            'https://via.placeholder.com/48?text=—';
+                            '/placeholder.svg';
                         }}
                       />
                       <div>

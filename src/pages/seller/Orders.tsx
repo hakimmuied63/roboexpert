@@ -460,13 +460,13 @@ export function SellerOrders() {
                               <img
                                 src={
                                   item.productSnapshot.image ??
-                                  'https://via.placeholder.com/40'
+                                  '/placeholder.svg'
                                 }
                                 alt={item.productSnapshot.name}
                                 className="w-10 h-10 rounded-lg object-cover bg-surface-100"
                                 onError={(e) => {
                                   (e.target as HTMLImageElement).src =
-                                    'https://via.placeholder.com/40?text=—';
+                                    '/placeholder.svg';
                                 }}
                               />
                               <div className="flex-1 min-w-0">

@@ -1734,3 +1734,88 @@ export const uploadReviewImage = async (file: File): Promise<string | null> => {
     return null;
   }
 };
+// ---------- Reported Reviews ----------
+
+export type ReportedReview = {
+  _id: string;
+  productId: { _id: string; name: string; images: string[] };
+  buyerName: string;
+  rating: number;
+  comment: string | null;
+  images: string[];
+  reportedBy?: { name: string; email: string; role: string };
+  reportedByRole?: string;
+  reportReason: string;
+  reportedAt: string;
+  createdAt: string;
+};
+
+export const fetchReportedReviews = async (): Promise<ReportedReview[]> => {
+  try {
+    const res = await authFetch(`${API_BASE}/admin/reviews/reported`);
+    if (!res.ok) return [];
+    const data = await res.json();
+    return data.reviews ?? [];
+  } catch (error) {
+    console.error('fetchReportedReviews error:', error);
+    return [];
+  }
+};
+
+export const handleReportedReviewAction = async (
+  reviewId: string,
+  action: 'hide' | 'dismiss'
+): Promise<boolean> => {
+  try {
+    const res = await authFetch(`${API_BASE}/admin/reviews/${reviewId}/action`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action }),
+    });
+    return res.ok;
+  } catch (error) {
+    console.error('handleReportedReviewAction error:', error);
+    return false;
+  }
+};
+
+export const reportSellerReview = async (
+  reviewId: string,
+  reason: string
+): Promise<boolean> => {
+  try {
+    const res = await authFetch(`${API_BASE}/reviews/${reviewId}/report`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ reason }),
+    });
+    return res.ok;
+  } catch (error) {
+    console.error('reportSellerReview error:', error);
+    return false;
+  }
+};
+// ---------- Seller Reviews ----------
+
+export type SellerReview = {
+  _id: string;
+  productId: { _id: string; name: string; images: string[] };
+  buyerName: string;
+  rating: number;
+  comment: string | null;
+  images: string[];
+  createdAt: string;
+  reported: boolean;
+};
+
+export const fetchSellerReviews = async (): Promise<SellerReview[]> => {
+  try {
+    const res = await authFetch(`${API_BASE}/seller/reviews`);
+    if (!res.ok) return [];
+    const data = await res.json();
+    return data.reviews ?? [];
+  } catch (error) {
+    console.error('fetchSellerReviews error:', error);
+    return [];
+  }
+};

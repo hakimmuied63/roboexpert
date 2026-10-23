@@ -37,6 +37,7 @@ import { SellerPayments } from './pages/seller/Payments';
 import { SellerSettings } from './pages/seller/Settings';
 import { SellerCategories } from './pages/seller/Categories';
 import { ProductsBulkUpload } from './pages/seller/ProductsBulkUpload';
+import { SellerReviews } from './pages/seller/Reviews';
 
 // Admin Pages
 import { AdminOverview } from './pages/admin/Overview';
@@ -45,6 +46,7 @@ import { AdminSellers } from './pages/admin/Sellers';
 import { AdminCategories } from './pages/admin/Categories';
 import { AdminLeads } from './pages/admin/Leads';
 import { AdminOrders } from './pages/admin/Orders';
+import { AdminReviews } from './pages/admin/Reviews';
 
 // Protected Route Component
 const ProtectedRoute = ({ children, allowedRoles }: { children: React.ReactNode, allowedRoles: string[] }) => {
@@ -105,6 +107,7 @@ function App() {
                 <Route path="products/bulk" element={<ProductsBulkUpload />} />
                 <Route path="categories" element={<SellerCategories />} />
                 <Route path="orders" element={<SellerOrders />} />
+                <Route path="reviews" element={<SellerReviews />} />
                 <Route path="payments" element={<SellerPayments />} />
                 <Route path="settings" element={<SellerSettings />} />
               </Route>
@@ -125,6 +128,7 @@ function App() {
                 <Route path="leads" element={<AdminLeads />} />
                 <Route path="orders" element={<AdminOrders />} />
                 <Route path="users" element={<AdminUsers />} />
+                <Route path="reviews" element={<AdminReviews />} />
               </Route>
 
               {/* Catch-all */}

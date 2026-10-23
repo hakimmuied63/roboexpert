@@ -98,11 +98,11 @@ export function ProductDetail() {
         <div className="space-y-4">
           <div className="aspect-square bg-surface-100 rounded-2xl overflow-hidden border border-surface-200">
             <img
-              src={product.images[activeImage] ?? 'https://via.placeholder.com/600'}
+              src={product.images[activeImage] ?? '/placeholder.svg'}
               alt={product.name}
               className="w-full h-full object-cover"
               onError={(e) => {
-                (e.target as HTMLImageElement).src = 'https://via.placeholder.com/600?text=No+Image';
+                (e.target as HTMLImageElement).src = '/placeholder.svg';
               }}
             />
           </div>

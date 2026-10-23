@@ -505,12 +505,12 @@ export function Checkout() {
                 <li key={item.variantId} className="flex gap-4">
                   <div className="relative">
                     <img
-                      src={item.image ?? 'https://via.placeholder.com/64'}
+                     src={item.image ?? '/placeholder.svg'}
                       alt={item.productName}
                       className="w-16 h-16 rounded-lg object-cover border border-surface-200"
                       onError={(e) => {
                         (e.target as HTMLImageElement).src =
-                          'https://via.placeholder.com/64?text=No+Image';
+                          '/placeholder.svg';
                       }}
                     />
                     <span className="absolute -top-2 -right-2 w-5 h-5 bg-surface-500 text-white text-xs font-medium rounded-full flex items-center justify-center">

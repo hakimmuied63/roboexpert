@@ -13,6 +13,8 @@ import {
   BarChart3,
   Tag,
   UserPlus,
+  Flag,
+  MessageSquare,
 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
@@ -36,6 +38,7 @@ const sellerLinks: SidebarLink[] = [
   { to: '/seller/products', icon: <Package className="w-5 h-5" />, label: 'Products' },
   { to: '/seller/categories', icon: <Tag className="w-5 h-5" />, label: 'Categories' },
   { to: '/seller/orders', icon: <ShoppingBag className="w-5 h-5" />, label: 'Orders' },
+  { to: '/seller/reviews', icon: <MessageSquare className="w-5 h-5" />, label: 'Reviews' },
   { to: '/seller/payments', icon: <CreditCard className="w-5 h-5" />, label: 'Payments' },
   { to: '/seller/settings', icon: <Settings className="w-5 h-5" />, label: 'Settings' },
 ];
@@ -48,6 +51,7 @@ const adminLinks: SidebarLink[] = [
   { to: '/admin/users', icon: <Users className="w-5 h-5" />, label: 'Users' },
   { to: '/admin/categories', icon: <Tag className="w-5 h-5" />, label: 'Packaging' },
   { to: '/admin/leads', icon: <UserPlus className="w-5 h-5" />, label: 'Leads' },
+  { to: '/admin/reviews', icon: <Flag className="w-5 h-5" />, label: 'Reported Reviews' },
 ];
 
 export function Sidebar({ type, collapsible = false, onNavigate }: SidebarProps) {
