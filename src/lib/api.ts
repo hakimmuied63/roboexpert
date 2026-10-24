@@ -1251,11 +1251,19 @@ export const signupSeller = async (
     const companyData = await companyRes.json().catch(() => null);
 
     if (!companyRes.ok || !companyData || !companyData.ok) {
+      // ROLLBACK: delete the user we just created
+      try {
+        await fetch(`${API_BASE}/auth/me`, {
+          method: 'DELETE',
+          headers: { Authorization: `Bearer ${accessToken}` },
+        });
+      } catch (rollbackErr) {
+        console.error('Failed to rollback user:', rollbackErr);
+      }
+
       return {
         success: false,
-        error:
-          companyData?.error ??
-          'Account created but company setup failed. Please contact support.',
+        error: companyData?.error ?? 'Company setup failed. Please try again.',
       };
     }
 
