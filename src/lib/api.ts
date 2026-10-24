@@ -505,6 +505,8 @@ export type AdminSeller = {
     slug: string;
     contactEmail: string;
     contactPhone?: string;
+    gstNumber?: string;
+    panCardUrl?: string;
   } | null;
 };
 
@@ -1181,8 +1183,10 @@ export type SignupSellerPayload = {
   password: string;
   name: string;
   businessName: string;
+  phone: string;
+  gstNumber: string;
+  panCardUrl: string;
 };
-
 export type SignupSellerResult =
   | {
       success: true;
@@ -1238,6 +1242,9 @@ export const signupSeller = async (
       body: JSON.stringify({
         name: payload.businessName,
         contactEmail: payload.email,
+        contactPhone: payload.phone,
+        gstNumber: payload.gstNumber,
+        panCardUrl: payload.panCardUrl,
       }),
     });
 

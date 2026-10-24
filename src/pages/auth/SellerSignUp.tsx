@@ -1,21 +1,27 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Store, CheckCircle2 } from 'lucide-react';
+import { Store, CheckCircle2, Upload } from 'lucide-react';
 import { Button, Input } from '../../components/ui';
 import { useAuth } from '../../contexts/AuthContext';
+import { uploadImage, signupSeller } from '../../lib/api';
 import toast from 'react-hot-toast';
 
 export function SellerSignUp() {
   const [loading, setLoading] = useState(false);
-  const { signup } = useAuth();
+  const [uploading, setUploading] = useState(false);
+  const { login } = useAuth(); // We'll use login after signup
   const navigate = useNavigate();
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [form, setForm] = useState({
     name: '',
     businessName: '',
     email: '',
+    phone: '',
+    gstNumber: '',
     password: '',
   });
+  const [panCardUrl, setPanCardUrl] = useState('');
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   const validate = () => {
@@ -24,12 +30,34 @@ export function SellerSignUp() {
     if (!form.businessName.trim()) e.businessName = 'Business name is required';
     if (!form.email.trim()) e.email = 'Email is required';
     else if (!/\S+@\S+\.\S+/.test(form.email)) e.email = 'Invalid email address';
+    if (!form.phone.trim()) e.phone = 'Phone number is required';
+    if (!form.gstNumber.trim()) e.gstNumber = 'GST number is required';
+    else if (form.gstNumber.length !== 15) e.gstNumber = 'GST must be 15 characters';
     if (!form.password) e.password = 'Password is required';
     else if (form.password.length < 8) {
       e.password = 'Password must be at least 8 characters';
     }
+    if (!panCardUrl) e.panCard = 'PAN card upload is required';
+    
     setErrors(e);
     return Object.keys(e).length === 0;
+  };
+
+  const handlePanUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setUploading(true);
+    const res = await uploadImage(file, 'sellers');
+    setUploading(false);
+
+    if (!res.ok || !res.url) {
+      toast.error(res.error || 'Failed to upload PAN card');
+      return;
+    }
+    setPanCardUrl(res.url);
+    setErrors((prev) => ({ ...prev, panCard: '' }));
+    toast.success('PAN card uploaded');
   };
 
   const handleSignup = async (e: React.FormEvent) => {
@@ -41,18 +69,25 @@ export function SellerSignUp() {
 
     setLoading(true);
     try {
-      const result = await signup(
-        form.email.trim().toLowerCase(),
-        form.password,
-        form.name.trim(),
-        form.businessName.trim()
-      );
+      // 1. Call signupSeller with all fields
+      const result = await signupSeller({
+        email: form.email.trim().toLowerCase(),
+        password: form.password,
+        name: form.name.trim(),
+        businessName: form.businessName.trim(),
+        phone: form.phone.trim(),
+        gstNumber: form.gstNumber.toUpperCase().trim(),
+        panCardUrl,
+      });
 
       if (!result.success) {
         toast.error(result.error);
         return;
       }
 
+      // 2. Log them in
+      await login(form.email.trim().toLowerCase(), form.password);
+      
       toast.success('Welcome to Roboexpert!');
       navigate('/seller');
     } catch {
@@ -76,7 +111,7 @@ export function SellerSignUp() {
           </Link>
           <h2 className="text-3xl font-bold text-surface-900">Start Selling on Roboexpert</h2>
           <p className="mt-2 text-sm text-surface-500">
-            Create your shop in seconds. No approval required.
+            Create your shop, verify your business details, and start selling.
           </p>
         </div>
 
@@ -100,15 +135,77 @@ export function SellerSignUp() {
                 />
               </div>
 
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                <Input
+                  label="Email address"
+                  type="email"
+                  value={form.email}
+                  onChange={(e) => setForm({ ...form, email: e.target.value })}
+                  error={errors.email}
+                  placeholder="you@example.com"
+                />
+                <Input
+                  label="Phone Number"
+                  value={form.phone}
+                  onChange={(e) => setForm({ ...form, phone: e.target.value })}
+                  error={errors.phone}
+                  placeholder="+91 98765 43210"
+                />
+              </div>
+
               <Input
-                label="Email address"
-                type="email"
-                value={form.email}
-                onChange={(e) => setForm({ ...form, email: e.target.value })}
-                error={errors.email}
-                placeholder="you@example.com"
-                autoComplete="email"
+                label="GST Number"
+                value={form.gstNumber}
+                onChange={(e) => setForm({ ...form, gstNumber: e.target.value.toUpperCase() })}
+                error={errors.gstNumber}
+                placeholder="e.g., 22AAAAA0000A1Z5"
+                maxLength={15}
               />
+
+              <div>
+                <label className="block text-sm font-medium text-surface-700 mb-1.5">
+                  PAN Card Image *
+                </label>
+                {panCardUrl ? (
+                  <div className="flex items-center gap-3 p-3 bg-success-50 border border-success-200 rounded-lg">
+                    <CheckCircle2 className="w-5 h-5 text-success-600" />
+                    <span className="text-sm text-success-800">PAN card uploaded successfully</span>
+                    <button
+                      type="button"
+                      onClick={() => setPanCardUrl('')}
+                      className="ml-auto text-xs text-danger-600 hover:underline"
+                    >
+                      Change
+                    </button>
+                  </div>
+                ) : (
+                  <div>
+                    <button
+                      type="button"
+                      onClick={() => fileInputRef.current?.click()}
+                      disabled={uploading}
+                      className={`w-full flex items-center justify-center gap-2 p-4 border-2 border-dashed rounded-lg transition-colors ${
+                        errors.panCard
+                          ? 'border-danger-300 bg-danger-50 text-danger-600'
+                          : 'border-surface-300 hover:border-primary-400 text-surface-500 hover:text-primary-600'
+                      }`}
+                    >
+                      <Upload className="w-5 h-5" />
+                      {uploading ? 'Uploading...' : 'Click to upload PAN card'}
+                    </button>
+                    {errors.panCard && (
+                      <p className="mt-1 text-xs text-danger-600">{errors.panCard}</p>
+                    )}
+                  </div>
+                )}
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={handlePanUpload}
+                />
+              </div>
 
               <Input
                 label="Password"
@@ -119,18 +216,6 @@ export function SellerSignUp() {
                 placeholder="At least 8 characters"
                 autoComplete="new-password"
               />
-
-              <div className="bg-primary-50 border border-primary-100 rounded-lg p-4 flex items-start gap-3">
-                <CheckCircle2 className="w-5 h-5 text-primary-600 flex-shrink-0 mt-0.5" />
-                <div className="text-xs text-primary-900">
-                  <p className="font-medium mb-1">What you get</p>
-                  <ul className="space-y-0.5 text-primary-800">
-                    <li>• Your own storefront URL (Shop Now link)</li>
-                    <li>• Direct payments to your Razorpay account</li>
-                    <li>• Full control over products, orders, and categories</li>
-                  </ul>
-                </div>
-              </div>
 
               <Button type="submit" fullWidth size="lg" loading={loading}>
                 Create Seller Account
@@ -145,10 +230,6 @@ export function SellerSignUp() {
             </Link>
           </div>
         </div>
-
-        <p className="text-center text-xs text-surface-400">
-          By creating an account, you agree to Roboexpert's Terms of Service.
-        </p>
       </div>
     </div>
   );

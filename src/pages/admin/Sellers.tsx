@@ -163,13 +163,14 @@ export function AdminSellers() {
           No {tab} sellers found.
         </div>
       ) : (
-        <div className="bg-white rounded-xl border border-surface-200 overflow-hidden">
-          <table className="w-full">
+        <div className="bg-white rounded-xl border border-surface-200 overflow-x-auto">
+          <table className="w-full min-w-[800px]">
             <thead>
               <tr className="text-left text-xs font-medium text-surface-500 uppercase tracking-wider border-b border-surface-100">
                 <th className="px-6 py-3">Seller</th>
                 <th className="px-6 py-3">Status</th>
                 <th className="px-6 py-3">Contact</th>
+                <th className="px-6 py-3">KYC Documents</th>
                 <th className="px-6 py-3">Signed Up</th>
                 <th className="px-6 py-3 text-right">Actions</th>
               </tr>
@@ -199,6 +200,30 @@ export function AdminSellers() {
                       <div className="text-xs text-surface-500">{seller.phone}</div>
                     )}
                   </td>
+                  
+                  {/* NEW KYC COLUMN */}
+                  <td className="px-6 py-4 text-sm text-surface-700">
+                    {seller.company?.gstNumber ? (
+                      <div className="flex flex-col gap-1">
+                        <span className="font-mono text-xs bg-surface-100 px-2 py-1 rounded w-fit" title="GST Number">
+                          {seller.company.gstNumber}
+                        </span>
+                        {seller.company.panCardUrl && (
+                          <a
+                            href={seller.company.panCardUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-xs text-primary-600 hover:underline"
+                          >
+                            View PAN Card
+                          </a>
+                        )}
+                      </div>
+                    ) : (
+                      <span className="text-xs text-surface-400">Not provided</span>
+                    )}
+                  </td>
+
                   <td className="px-6 py-4 text-sm text-surface-500">
                     {new Date(seller.createdAt).toLocaleDateString()}
                   </td>
