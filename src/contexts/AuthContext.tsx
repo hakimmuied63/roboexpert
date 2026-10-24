@@ -12,17 +12,22 @@ export type LoginResult =
   | { success: true; role: 'seller' | 'admin'; user: AuthUser }
   | { success: false; error: string };
 
+export interface SignupPayload {
+  email: string;
+  password: string;
+  name: string;
+  businessName: string;
+  phone: string;
+  gstNumber: string;
+  panCardUrl: string;
+}
+
 interface AuthContextType {
   user: AuthUser | null;
   isAuthenticated: boolean;
   isLoading: boolean;
   login: (email: string, password: string) => Promise<LoginResult>;
-  signup: (
-    email: string,
-    password: string,
-    name: string,
-    businessName: string
-  ) => Promise<LoginResult>;
+  signup: (payload: SignupPayload) => Promise<LoginResult>;
   logout: () => Promise<void>;
   getToken: () => string | null;
 }
@@ -85,13 +90,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const signup = async (
-    email: string,
-    password: string,
-    name: string,
-    businessName: string
-  ): Promise<LoginResult> => {
-    const result = await signupSeller({ email, password, name, businessName });
+  const signup = async (payload: SignupPayload): Promise<LoginResult> => {
+    const result = await signupSeller({
+      email: payload.email,
+      password: payload.password,
+      name: payload.name,
+      businessName: payload.businessName,
+      phone: payload.phone,
+      gstNumber: payload.gstNumber,
+      panCardUrl: payload.panCardUrl,
+    });
 
     if (!result.success) {
       return { success: false, error: result.error };
