@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { useCart } from '../../contexts/CartContext';
 import { Button, Input, Select } from '../../components/ui';
 import { placeOrder, createPaymentOrder, verifyPayment } from '../../lib/api';
@@ -14,7 +14,6 @@ import {
   Banknote,
 } from 'lucide-react';
 
-
 declare global {
   interface Window {
     Razorpay: any;
@@ -24,6 +23,9 @@ declare global {
 export function Checkout() {
   const { items, totalPrice, clearCart } = useCart();
   const navigate = useNavigate();
+  const location = useLocation();
+  const appliedCoupon = location.state?.coupon;
+
   const [loading, setLoading] = useState(false);
   const [showOtp, setShowOtp] = useState(false);
   const [step, setStep] = useState<1 | 2>(1);
@@ -44,7 +46,8 @@ export function Checkout() {
 
   const subtotal = totalPrice;
   const shipping = 0;
-  const total = subtotal + shipping;
+  const discountAmount = appliedCoupon?.discountAmount || 0;
+  const total = subtotal + shipping - discountAmount;
 
   if (items.length === 0) {
     navigate('/cart');
@@ -70,6 +73,7 @@ export function Checkout() {
     e.preventDefault();
     if (validateShipping()) setStep(2);
   };
+
   const handlePlaceOrder = () => {
     if (!form.email) {
       toast.error('Please enter your email first.');
@@ -105,6 +109,7 @@ export function Checkout() {
           quantity: i.quantity,
         })),
         utm,
+        couponCode: appliedCoupon?.coupon?.code,
       };
 
       toast('Placing your order...', { icon: '📦' });
@@ -509,8 +514,7 @@ export function Checkout() {
                       alt={item.productName}
                       className="w-16 h-16 rounded-lg object-cover border border-surface-200"
                       onError={(e) => {
-                        (e.target as HTMLImageElement).src =
-                          '/placeholder.svg';
+                        (e.target as HTMLImageElement).src = '/placeholder.svg';
                       }}
                     />
                     <span className="absolute -top-2 -right-2 w-5 h-5 bg-surface-500 text-white text-xs font-medium rounded-full flex items-center justify-center">
@@ -548,6 +552,15 @@ export function Checkout() {
                   <span className="text-success-600">Free</span>
                 </span>
               </div>
+              
+              {/* DISCOUNT ROW */}
+              {appliedCoupon && (
+                <div className="flex justify-between text-green-600 font-medium">
+                  <span>Discount ({appliedCoupon.coupon.code})</span>
+                  <span>- ₹{discountAmount.toLocaleString('en-IN')}</span>
+                </div>
+              )}
+
               <div className="flex justify-between text-surface-600">
                 <span>Packaging</span>
                 <span className="text-xs text-surface-500 italic">
@@ -570,7 +583,7 @@ export function Checkout() {
               <p>Safe and secure payments. 100% Authentic products.</p>
             </div>
           </div>
-        a </div>
+        </div>
       </div>
 
       {showOtp && (

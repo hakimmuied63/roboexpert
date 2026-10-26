@@ -1,12 +1,13 @@
 import { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { Shield, Truck, Share2, ChevronRight, ShoppingCart } from 'lucide-react';
+import { Shield, Truck, Share2, ChevronRight, ShoppingCart, Tag } from 'lucide-react';
 import { Button, Badge, LoadingSpinner } from '../../components/ui';
 import { useCart } from '../../contexts/CartContext';
 import { WishlistButton } from '../../components/wishlist/WishlistButton';
 import { ReviewsSection } from '../../components/product/ReviewsSection';
 import {
   fetchProductById,
+  fetchPublicCoupons,
   type Product,
   type ProductVariant,
 } from '../../lib/api';
@@ -16,6 +17,7 @@ export function ProductDetail() {
   const { id } = useParams<{ id: string }>();
   const [product, setProduct] = useState<Product | null>(null);
   const [variants, setVariants] = useState<ProductVariant[]>([]);
+  const [coupons, setCoupons] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeImage, setActiveImage] = useState(0);
   const [quantity, setQuantity] = useState(1);
@@ -33,6 +35,10 @@ export function ProductDetail() {
         setVariants(data.variants);
         if (data.variants.length > 0) {
           setSelectedVariantId(data.variants[0]._id);
+        }
+        if (data.product.company?._id) {
+          const c = await fetchPublicCoupons(data.product.company._id);
+          setCoupons(c);
         }
       } else {
         setProduct(null);
@@ -154,6 +160,28 @@ export function ProductDetail() {
               </span>
             </div>
             <p className="text-sm text-surface-500">Inclusive of all taxes</p>
+
+            {/* PUBLIC COUPONS BOX */}
+            {coupons.length > 0 && (
+              <div className="bg-green-50 border border-green-200 rounded-lg p-4 mt-6">
+                <h3 className="text-sm font-bold text-green-900 flex items-center gap-2 mb-2">
+                  <Tag className="w-4 h-4" /> Available Offers
+                </h3>
+                <ul className="space-y-2">
+                  {coupons.map(c => (
+                    <li key={c.code} className="text-sm text-green-800 flex items-center gap-2">
+                      <span className="font-mono bg-white border border-green-300 px-2 py-0.5 rounded text-xs font-bold text-green-700">
+                        {c.code}
+                      </span>
+                      <span>
+                        {c.discountType === 'percentage' ? `${c.discountValue}% off` : `₹${c.discountValue} off`}
+                        {c.minOrderAmount > 0 && ` on orders above ₹${c.minOrderAmount}`}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
           </div>
 
           {/* Variant selector */}
@@ -260,12 +288,13 @@ export function ProductDetail() {
           <p className="text-surface-500">No description provided.</p>
         )}
       </div>
-            {/* Reviews & Ratings */}
-            <ReviewsSection
+
+      {/* Reviews & Ratings */}
+      <ReviewsSection
         productId={product._id}
         ratingAverage={(product as any).ratingAverage ?? 0}
         ratingCount={(product as any).ratingCount ?? 0}
       />
     </div>
   );
-}
+} 

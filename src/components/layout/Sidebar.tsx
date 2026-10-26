@@ -38,6 +38,7 @@ const sellerLinks: SidebarLink[] = [
   { to: '/seller/products', icon: <Package className="w-5 h-5" />, label: 'Products' },
   { to: '/seller/categories', icon: <Tag className="w-5 h-5" />, label: 'Categories' },
   { to: '/seller/orders', icon: <ShoppingBag className="w-5 h-5" />, label: 'Orders' },
+  { to: '/seller/coupons', icon: <Tag className="w-5 h-5" />, label: 'Coupons' },
   { to: '/seller/reviews', icon: <MessageSquare className="w-5 h-5" />, label: 'Reviews' },
   { to: '/seller/payments', icon: <CreditCard className="w-5 h-5" />, label: 'Payments' },
   { to: '/seller/settings', icon: <Settings className="w-5 h-5" />, label: 'Settings' },

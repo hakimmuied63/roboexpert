@@ -33,6 +33,7 @@ import { StorefrontPage } from './pages/buyer/StorefrontPage';
 import { SellerOverview } from './pages/seller/Overview';
 import { SellerProducts } from './pages/seller/Products';
 import { SellerOrders } from './pages/seller/Orders';
+import { SellerCoupons } from './pages/seller/Coupons';
 import { SellerPayments } from './pages/seller/Payments';
 import { SellerSettings } from './pages/seller/Settings';
 import { SellerCategories } from './pages/seller/Categories';
@@ -107,6 +108,7 @@ function App() {
                 <Route path="products/bulk" element={<ProductsBulkUpload />} />
                 <Route path="categories" element={<SellerCategories />} />
                 <Route path="orders" element={<SellerOrders />} />
+                <Route path="coupons" element={<SellerCoupons />} />
                 <Route path="reviews" element={<SellerReviews />} />
                 <Route path="payments" element={<SellerPayments />} />
                 <Route path="settings" element={<SellerSettings />} />

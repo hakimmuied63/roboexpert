@@ -179,6 +179,7 @@ export type PlaceOrderPayload = {
   };
   paymentMethod: 'cod' | 'online';
   items: CartItemForOrder[];
+  couponCode?: string;
   utm?: {
     source?: string;
     medium?: string;
@@ -1831,6 +1832,95 @@ export const fetchSellerReviews = async (): Promise<SellerReview[]> => {
     return data.reviews ?? [];
   } catch (error) {
     console.error('fetchSellerReviews error:', error);
+    return [];
+  }
+};
+// ---------- Coupons ----------
+
+export type Coupon = {
+  _id: string;
+  companyId: string;
+  code: string;
+  discountType: 'percentage' | 'flat';
+  discountValue: number;
+  minOrderAmount: number;
+  maxDiscountAmount?: number | null;
+  expiresAt?: string | null;
+  isActive: boolean;
+  isPublic: boolean;
+  applicableProducts: string[];
+  createdAt: string;
+};
+
+export const fetchSellerCoupons = async (): Promise<Coupon[]> => {
+  try {
+    const res = await authFetch(`${API_BASE}/coupons/my`);
+    if (!res.ok) return [];
+    const data = await res.json();
+    return data.coupons ?? [];
+  } catch (error) {
+    console.error('fetchSellerCoupons error:', error);
+    return [];
+  }
+};
+
+export const createSellerCoupon = async (payload: Partial<Coupon>): Promise<boolean> => {
+  try {
+    const res = await authFetch(`${API_BASE}/coupons`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    return res.ok;
+  } catch (error) {
+    console.error('createSellerCoupon error:', error);
+    return false;
+  }
+};
+
+export const deleteSellerCoupon = async (couponId: string): Promise<boolean> => {
+  try {
+    const res = await authFetch(`${API_BASE}/coupons/${couponId}`, { method: 'DELETE' });
+    return res.ok;
+  } catch (error) {
+    console.error('deleteSellerCoupon error:', error);
+    return false;
+  }
+};
+
+export const validateCartCoupon = async (code: string, companyId: string, cartTotal: number) => {
+  try {
+    const res = await fetch(`${API_BASE}/coupons/validate?code=${code}&companyId=${companyId}&cartTotal=${cartTotal}`);
+    return await res.json();
+  } catch (error) {
+    console.error('validateCartCoupon error:', error);
+    return { ok: false, error: 'Network error' };
+  }
+};
+
+export const fetchPublicCoupons = async (companyId: string): Promise<any[]> => {
+  try {
+    const res = await fetch(`${API_BASE}/coupons/public/${companyId}`);
+    if (!res.ok) return [];
+    const data = await res.json();
+    return data.coupons ?? [];
+  } catch (error) {
+    console.error('fetchPublicCoupons error:', error);
+    return [];
+  }
+};
+
+export const fetchCartCoupons = async (companyIds: string[]): Promise<any[]> => {
+  try {
+    const res = await fetch(`${API_BASE}/coupons/cart`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ companyIds }),
+    });
+    if (!res.ok) return [];
+    const data = await res.json();
+    return data.coupons ?? [];
+  } catch (error) {
     return [];
   }
 };
