@@ -58,16 +58,24 @@ export function getDiscountPercent(product: Product): number | undefined {
 }
 
 export function getProductRating(product: Product): number | undefined {
-  const extra = product as Product & { rating?: number; avgRating?: number };
-  const value = extra.rating ?? extra.avgRating;
+  const extra = product as Product & {
+    rating?: number;
+    avgRating?: number;
+    ratingAverage?: number;
+  };
+  const value = extra.ratingAverage ?? extra.rating ?? extra.avgRating;
   if (typeof value === 'number' && Number.isFinite(value) && value > 0) return value;
   return undefined;
 }
 
 export function getReviewCount(product: Product): number | undefined {
-  const extra = product as Product & { reviewCount?: number };
-  if (typeof extra.reviewCount === 'number' && extra.reviewCount > 0) {
-    return extra.reviewCount;
+  const extra = product as Product & {
+    reviewCount?: number;
+    ratingCount?: number;
+  };
+  const count = extra.ratingCount ?? extra.reviewCount;
+  if (typeof count === 'number' && count > 0) {
+    return count;
   }
   return undefined;
 }
@@ -80,7 +88,10 @@ export function isNewProduct(product: Product, withinDays = 21): boolean {
 }
 
 export function hasUsableImage(product: Product): boolean {
-  return Boolean(product.images?.[0]);
+  const img = product.images?.[0];
+  if (!img) return false;
+  if (img.includes('example.com')) return false;
+  return true;
 }
 
 export function groupCategories(categories: Category[]) {

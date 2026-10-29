@@ -113,6 +113,8 @@ export type ProductVariant = {
   price: number;
   stock: number;
   isActive: boolean;
+  ratingAverage?: number;
+  ratingCount?: number;   
 };
 
 export type ProductDetailResponse = {
@@ -1073,6 +1075,14 @@ export type MyCompany = {
     country?: string;
   };
   logoUrl?: string;
+  gstNumber?: string;
+  panCardUrl?: string;
+  bannerUrl?: string | null;
+  tagline?: string | null;
+  aboutText?: string | null;
+  primaryColor?: string;
+  layoutStyle?: 'grid' | 'list';
+  gridColumns?: number;
   isActive: boolean;
   createdAt: string;
   updatedAt: string;
@@ -1103,6 +1113,12 @@ export type UpdateCompanyPayload = {
     country?: string;
   };
   logoUrl?: string;
+  bannerUrl?: string | null;
+  tagline?: string | null;
+  aboutText?: string | null;
+  primaryColor?: string;
+  layoutStyle?: 'grid' | 'list';
+  gridColumns?: number;
 };
 
 export const updateMyCompany = async (
@@ -1695,6 +1711,7 @@ export const createProductReview = async (
   payload: { 
     orderNumber: string; 
     email: string; 
+    variantId: string;
     rating: number; 
     comment?: string; 
     images?: string[] 
@@ -1922,5 +1939,15 @@ export const fetchCartCoupons = async (companyIds: string[]): Promise<any[]> => 
     return data.coupons ?? [];
   } catch (error) {
     return [];
+  }
+};
+export const fetchCompanyById = async (id: string): Promise<any> => {
+  try {
+    const res = await fetch(`${API_BASE}/catalog/companies/${id}`);
+    if (!res.ok) return null;
+    const data = await res.json();
+    return data.company;
+  } catch (error) {
+    return null;
   }
 };

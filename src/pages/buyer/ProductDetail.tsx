@@ -66,6 +66,15 @@ export function ProductDetail() {
   const availableStock = selectedVariant?.stock ?? 0;
   const canBuy = availableStock > 0;
 
+  // --- Color & Size Logic ---
+  const colors = Array.from(new Set(variants.map((v) => v.attributes.Color || 'Default')));
+  const selectedColor = selectedVariant?.attributes.Color || (colors.length > 0 ? colors[0] : null);
+
+  const availableSizes = variants
+    .filter((v) => (v.attributes.Color || 'Default') === selectedColor)
+    .map((v) => v.attributes.Size)
+    .filter(Boolean);
+
   const handleAddToCart = () => {
     if (!selectedVariant) {
       toast.error('Please select a variant');
@@ -159,6 +168,20 @@ export function ProductDetail() {
                 ₹{displayPrice.toLocaleString('en-IN')}
               </span>
             </div>
+            
+            {/* SKU Rating Display */}
+            {selectedVariant && (
+              <div className="flex items-center gap-2 mt-2 mb-1">
+                {[...Array(5)].map((_, i) => (
+                  <span key={i} className={`text-lg ${i < Math.round((selectedVariant as any).ratingAverage || 0) ? 'text-yellow-400' : 'text-gray-300'}`}>★</span>
+                ))}
+                <span className="text-sm text-gray-600">
+                  {(selectedVariant as any).ratingAverage?.toFixed(1) || '0.0'} 
+                  {' '}({(selectedVariant as any).ratingCount || 0} reviews)
+                </span>
+              </div>
+            )}
+
             <p className="text-sm text-surface-500">Inclusive of all taxes</p>
 
             {/* PUBLIC COUPONS BOX */}
@@ -184,34 +207,78 @@ export function ProductDetail() {
             )}
           </div>
 
-          {/* Variant selector */}
+          {/* Color & Size Selectors */}
           {variants.length > 0 && (
-            <div className="space-y-3">
-              <p className="text-sm font-semibold text-surface-900">Select variant</p>
-              <div className="flex flex-wrap gap-2">
-                {variants.map((v) => {
-                  const isSelected = v._id === selectedVariantId;
-                  const outOfStock = v.stock <= 0;
-                  return (
-                    <button
-                      key={v._id}
-                      type="button"
-                      onClick={() => setSelectedVariantId(v._id)}
-                      disabled={outOfStock}
-                      className={`px-4 py-2 text-sm rounded-lg border transition-colors ${
-                        isSelected
-                          ? 'bg-primary-600 text-white border-primary-600'
-                          : outOfStock
-                          ? 'bg-surface-100 text-surface-400 border-surface-200 cursor-not-allowed'
-                          : 'bg-white text-surface-700 border-surface-300 hover:border-primary-500'
-                      }`}
-                    >
-                      {Object.values(v.attributes).join(' / ')}
-                      {outOfStock && ' (out)'}
-                    </button>
-                  );
-                })}
-              </div>
+            <div className="space-y-4">
+              
+              {/* Color Selector */}
+              {colors.length > 1 && (
+                <div>
+                  <p className="text-sm font-semibold text-surface-900 mb-2">Select Color</p>
+                  <div className="flex flex-wrap gap-2">
+                    {colors.map((color) => {
+                      const isSelected = selectedColor === color;
+                      return (
+                        <button
+                          key={color}
+                          type="button"
+                          onClick={() => {
+                            // Find the first variant of this color to auto-select it
+                            const firstVariant = variants.find(v => (v.attributes.Color || 'Default') === color);
+                            if (firstVariant) setSelectedVariantId(firstVariant._id);
+                          }}
+                          className={`px-4 py-2 text-sm rounded-lg border transition-colors ${
+                            isSelected
+                              ? 'bg-primary-600 text-white border-primary-600'
+                              : 'bg-white text-surface-700 border-surface-300 hover:border-primary-500'
+                          }`}
+                        >
+                          {color}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {/* Size Selector */}
+              {availableSizes.length > 0 && (
+                <div>
+                  <p className="text-sm font-semibold text-surface-900 mb-2">Select Size</p>
+                  <div className="flex flex-wrap gap-2">
+                    {availableSizes.map((size) => {
+                      // Find the specific variant ID for this Color + Size combo
+                      const matchedVariant = variants.find(
+                        v => (v.attributes.Color || 'Default') === selectedColor && v.attributes.Size === size
+                      );
+                      const isSelected = selectedVariantId === matchedVariant?._id;
+                      const outOfStock = (matchedVariant?.stock ?? 0) <= 0;
+
+                      return (
+                        <button
+                          key={size}
+                          type="button"
+                          onClick={() => {
+                            if (matchedVariant) setSelectedVariantId(matchedVariant._id);
+                          }}
+                          disabled={outOfStock}
+                          className={`px-4 py-2 text-sm rounded-lg border transition-colors ${
+                            isSelected
+                              ? 'bg-primary-600 text-white border-primary-600'
+                              : outOfStock
+                              ? 'bg-surface-100 text-surface-400 border-surface-200 cursor-not-allowed'
+                              : 'bg-white text-surface-700 border-surface-300 hover:border-primary-500'
+                          }`}
+                        >
+                          {size}
+                          {outOfStock && ' (out)'}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
             </div>
           )}
 
@@ -292,9 +359,10 @@ export function ProductDetail() {
       {/* Reviews & Ratings */}
       <ReviewsSection
         productId={product._id}
-        ratingAverage={(product as any).ratingAverage ?? 0}
-        ratingCount={(product as any).ratingCount ?? 0}
+        variantId={selectedVariantId || undefined}
+        ratingAverage={(selectedVariant as any)?.ratingAverage ?? 0}
+        ratingCount={(selectedVariant as any)?.ratingCount ?? 0}
       />
     </div>
   );
-} 
+}

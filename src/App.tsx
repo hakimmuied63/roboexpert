@@ -34,6 +34,7 @@ import { SellerOverview } from './pages/seller/Overview';
 import { SellerProducts } from './pages/seller/Products';
 import { SellerOrders } from './pages/seller/Orders';
 import { SellerCoupons } from './pages/seller/Coupons';
+import { SellerStoreDesign } from './pages/seller/StoreDesign';
 import { SellerPayments } from './pages/seller/Payments';
 import { SellerSettings } from './pages/seller/Settings';
 import { SellerCategories } from './pages/seller/Categories';
@@ -109,6 +110,7 @@ function App() {
                 <Route path="categories" element={<SellerCategories />} />
                 <Route path="orders" element={<SellerOrders />} />
                 <Route path="coupons" element={<SellerCoupons />} />
+                <Route path="design" element={<SellerStoreDesign />} />
                 <Route path="reviews" element={<SellerReviews />} />
                 <Route path="payments" element={<SellerPayments />} />
                 <Route path="settings" element={<SellerSettings />} />

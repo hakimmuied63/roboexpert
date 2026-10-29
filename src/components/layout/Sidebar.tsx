@@ -15,6 +15,7 @@ import {
   UserPlus,
   Flag,
   MessageSquare,
+  Palette,
 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
@@ -35,6 +36,7 @@ interface SidebarProps {
 
 const sellerLinks: SidebarLink[] = [
   { to: '/seller', icon: <LayoutDashboard className="w-5 h-5" />, label: 'Overview' },
+  { to: '/seller/design', icon: <Palette className="w-5 h-5" />, label: 'Store Design' },
   { to: '/seller/products', icon: <Package className="w-5 h-5" />, label: 'Products' },
   { to: '/seller/categories', icon: <Tag className="w-5 h-5" />, label: 'Categories' },
   { to: '/seller/orders', icon: <ShoppingBag className="w-5 h-5" />, label: 'Orders' },

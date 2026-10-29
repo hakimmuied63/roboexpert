@@ -18,17 +18,15 @@ interface ProductFormProps {
 }
 
 type VariantDraft = {
-  sku: string;
-  size: string;
   color: string;
+  sizes: string; // comma separated e.g. "S, M, L"
   price: string;
   stock: string;
 };
 
 const emptyVariant = (): VariantDraft => ({
-  sku: '',
-  size: '',
   color: '',
+  sizes: '',
   price: '',
   stock: '',
 });
@@ -108,7 +106,8 @@ export function ProductForm({ product, onSave, onCancel }: ProductFormProps) {
         e.variants = 'At least one variant is required';
       } else {
         variants.forEach((v, i) => {
-          if (!v.sku.trim()) e[`variant_${i}_sku`] = 'SKU required';
+          if (!v.color.trim()) e[`variant_${i}_color`] = 'Color required';
+          if (!v.sizes.trim()) e[`variant_${i}_sizes`] = 'Sizes required';
           if (!v.price || Number(v.price) <= 0) {
             e[`variant_${i}_price`] = 'Valid price required';
           }
@@ -208,21 +207,32 @@ export function ProductForm({ product, onSave, onCancel }: ProductFormProps) {
 
         toast.success('Product updated');
       } else {
+        // Process variants: split sizes and create actual DB variants
+        const dbVariants: any[] = [];
+        
+        for (const v of variants) {
+          const sizeList = v.sizes.split(',').map(s => s.trim()).filter(Boolean);
+          
+          for (const size of sizeList) {
+            // Generate a unique SKU like RED-M-1234
+            const sku = `${v.color.substring(0,3).toUpperCase()}-${size.toUpperCase()}-${Math.floor(Math.random() * 10000)}`;
+            
+            dbVariants.push({
+              sku,
+              attributes: { Color: v.color.trim(), Size: size },
+              price: Number(v.price),
+              stock: Number(v.stock),
+            });
+          }
+        }
+
         const payload = {
           name: form.name.trim(),
           description: form.description.trim() || undefined,
           basePrice: Number(form.basePrice),
           categoryId: form.categoryId || undefined,
           images: form.imageUrls,
-          variants: variants.map((v) => ({
-            sku: v.sku.trim(),
-            attributes: {
-              ...(v.size.trim() ? { size: v.size.trim() } : {}),
-              ...(v.color.trim() ? { color: v.color.trim() } : {}),
-            },
-            price: Number(v.price),
-            stock: Number(v.stock),
-          })),
+          variants: dbVariants,
         };
 
         const result = await createSellerProduct(payload);
@@ -424,7 +434,7 @@ export function ProductForm({ product, onSave, onCancel }: ProductFormProps) {
           <div className="bg-white rounded-xl border border-surface-200 p-6 space-y-5">
             <div className="flex items-center justify-between">
               <h2 className="text-sm font-semibold text-surface-900">
-                Variants ({variants.length})
+                Colors & Sizes
               </h2>
               <Button
                 type="button"
@@ -433,9 +443,13 @@ export function ProductForm({ product, onSave, onCancel }: ProductFormProps) {
                 icon={<Plus className="w-4 h-4" />}
                 onClick={addVariant}
               >
-                Add Variant
+                Add Color
               </Button>
             </div>
+            
+            <p className="text-xs text-surface-500">
+              Add a color, then list the available sizes separated by commas. We will automatically generate a SKU for each size.
+            </p>
 
             {errors.variants && (
               <p className="text-sm text-danger-600">{errors.variants}</p>
@@ -444,11 +458,11 @@ export function ProductForm({ product, onSave, onCancel }: ProductFormProps) {
             {variants.map((variant, i) => (
               <div
                 key={i}
-                className="border border-surface-200 rounded-lg p-4 space-y-4 bg-surface-50"
+                className="border border-surface-200 rounded-lg p-4 space-y-4 bg-surface-50 relative"
               >
                 <div className="flex items-center justify-between">
                   <p className="text-xs font-medium text-surface-600 uppercase">
-                    Variant {i + 1}
+                    Color {i + 1}
                   </p>
                   {variants.length > 1 && (
                     <button
@@ -464,26 +478,21 @@ export function ProductForm({ product, onSave, onCancel }: ProductFormProps) {
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <Input
-                    label="SKU"
-                    value={variant.sku}
-                    onChange={(e) => updateVariant(i, { sku: e.target.value })}
-                    error={errors[`variant_${i}_sku`]}
-                    placeholder="e.g., TSHIRT-WHT-M"
-                  />
-                  <Input
-                    label="Size (optional)"
-                    value={variant.size}
-                    onChange={(e) => updateVariant(i, { size: e.target.value })}
-                    placeholder="e.g., M, 42"
-                  />
-                  <Input
-                    label="Color (optional)"
+                    label="Color Name"
                     value={variant.color}
                     onChange={(e) => updateVariant(i, { color: e.target.value })}
-                    placeholder="e.g., White"
+                    error={errors[`variant_${i}_color`]}
+                    placeholder="e.g., Red"
                   />
                   <Input
-                    label="Price (₹)"
+                    label="Available Sizes (comma separated)"
+                    value={variant.sizes}
+                    onChange={(e) => updateVariant(i, { sizes: e.target.value })}
+                    error={errors[`variant_${i}_sizes`]}
+                    placeholder="e.g., S, M, L, XL"
+                  />
+                  <Input
+                    label="Price for this Color (₹)"
                     type="number"
                     value={variant.price}
                     onChange={(e) => updateVariant(i, { price: e.target.value })}
@@ -492,7 +501,7 @@ export function ProductForm({ product, onSave, onCancel }: ProductFormProps) {
                     min="0"
                   />
                   <Input
-                    label="Stock"
+                    label="Stock per Size"
                     type="number"
                     value={variant.stock}
                     onChange={(e) => updateVariant(i, { stock: e.target.value })}

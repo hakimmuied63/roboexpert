@@ -12,6 +12,7 @@ import toast from 'react-hot-toast';
 
 type Props = {
   productId: string;
+  variantId?: string;
   ratingAverage?: number;
   ratingCount?: number;
 };
@@ -30,7 +31,7 @@ const StarRow = ({ value, size = 16 }: { value: number; size?: number }) => (
   </div>
 );
 
-export function ReviewsSection({ productId, ratingAverage = 0, ratingCount = 0 }: Props) {
+export function ReviewsSection({ productId, variantId, ratingAverage = 0, ratingCount = 0 }: Props) {
   const [reviews, setReviews] = useState<Review[]>([]);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
@@ -108,6 +109,7 @@ export function ReviewsSection({ productId, ratingAverage = 0, ratingCount = 0 }
     const result = await createProductReview(productId, {
       orderNumber: orderNumber.trim(),
       email: email.trim(),
+      variantId: variantId || '',
       rating,
       comment: comment.trim() || undefined,
       images: images.length > 0 ? images : undefined,

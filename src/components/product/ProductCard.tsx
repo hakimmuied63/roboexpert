@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { BadgeCheck, ImageOff, Plus, Star } from 'lucide-react';
+import { ImageOff, Star, ShoppingCart } from 'lucide-react';
 import toast from 'react-hot-toast';
 import type { Product } from '../../lib/api';
 import { fetchProductById } from '../../lib/api';
@@ -12,7 +12,6 @@ import {
   getDiscountPercent,
   getProductRating,
   getReviewCount,
-  isNewProduct,
 } from '../../lib/marketplaceUi';
 
 type Props = {
@@ -22,9 +21,7 @@ type Props = {
 export function ProductCard({ product }: Props) {
   const navigate = useNavigate();
   const { addItem } = useCart();
-  const [imgState, setImgState] = useState<'loading' | 'ready' | 'error'>(
-    product.images?.[0] ? 'loading' : 'error'
-  );
+  const [imgError, setImgError] = useState(false);
   const [adding, setAdding] = useState(false);
 
   const src = product.images?.[0];
@@ -32,7 +29,6 @@ export function ProductCard({ product }: Props) {
   const discount = getDiscountPercent(product);
   const rating = getProductRating(product);
   const reviews = getReviewCount(product);
-  const isNew = isNewProduct(product);
 
   const handleQuickAdd = async (e: React.MouseEvent) => {
     e.preventDefault();
@@ -64,109 +60,112 @@ export function ProductCard({ product }: Props) {
 
   return (
     <article className="h-full">
-      <Link
-        to={`/product/${product._id}`}
-        className="group flex h-full flex-col rounded-[24px] sm:rounded-[28px] bg-white border border-[#E6E6F0] shadow-card overflow-hidden transition-all duration-300 hover:-translate-y-[6px] hover:shadow-card-hover"
-      >
+      <div className="group flex h-full flex-col rounded-xl bg-white border border-slate-200/90 shadow-[0_1px_3px_rgba(0,0,0,0.05)] hover:shadow-md hover:border-slate-300 transition-all duration-200 overflow-hidden p-3 sm:p-3.5">
         {/* Product Image Area */}
-        <div className="relative aspect-[4/5] bg-[#F4F3FB] overflow-hidden">
-          {imgState === 'loading' && (
-            <div className="absolute inset-0 animate-pulse bg-surface-200" aria-hidden />
-          )}
-          {src && imgState !== 'error' ? (
-            <img
-              src={src}
-              alt={product.name}
-              loading="lazy"
-              className="h-full w-full object-cover transition-transform duration-500 ease-out group-hover:scale-[1.06]"
-              onLoad={() => setImgState('ready')}
-              onError={() => setImgState('error')}
-            />
+        <div className="relative aspect-square w-full rounded-lg bg-slate-50/70 overflow-hidden flex items-center justify-center mb-2.5">
+          {src && !imgError ? (
+            <Link to={`/product/${product._id}`} className="w-full h-full flex items-center justify-center p-2">
+              <img
+                src={src}
+                alt={product.name}
+                loading="lazy"
+                className="max-h-full max-w-full object-contain transition-transform duration-300 group-hover:scale-105"
+                onError={() => setImgError(true)}
+              />
+            </Link>
           ) : (
-            <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 text-surface-400 bg-surface-100">
-              <ImageOff className="w-8 h-8" aria-hidden />
-              <span className="text-xs font-medium">No image</span>
-            </div>
+            <Link to={`/product/${product._id}`} className="w-full h-full flex flex-col items-center justify-center gap-1.5 text-slate-400">
+              <ImageOff className="w-8 h-8 stroke-1" aria-hidden />
+              <span className="text-[11px] font-medium">No image</span>
+            </Link>
           )}
 
-          {/* Badges: Gradient Discount and Gradient "New" Badge */}
-          <div className="absolute top-3 left-3 z-10 flex flex-col gap-1.5 pointer-events-none">
-            {discount !== undefined && discount > 0 && (
-              <span className="px-2.5 py-0.5 rounded-full bg-gradient-to-r from-[#FF6A2B] to-[#FF8A3D] text-white text-[11px] font-bold shadow-sm">
+          {/* Discount Badge on Top-Left */}
+          {discount !== undefined && discount > 0 ? (
+            <div className="absolute top-2 left-2 z-10 pointer-events-none">
+              <span className="px-2 py-0.5 rounded text-[11px] font-bold bg-[#cc0c39] text-white shadow-sm">
                 {discount}% off
               </span>
-            )}
-            {isNew && (
-              <span className="px-2.5 py-0.5 rounded-full bg-gradient-to-r from-[#4F46FF] to-[#7A5CFF] text-white text-[11px] font-bold shadow-sm">
-                New
+            </div>
+          ) : null}
+
+          {/* Wishlist Heart on Top-Right */}
+          <div className="absolute top-2 right-2 z-10">
+            <WishlistButton
+              productId={product._id}
+              size="sm"
+              className="bg-white/80 hover:bg-white text-slate-400 hover:text-red-500 shadow-sm"
+            />
+          </div>
+        </div>
+
+        {/* Product Details Area */}
+        <div className="flex flex-col flex-1">
+          {/* Title */}
+          <Link
+            to={`/product/${product._id}`}
+            className="text-xs sm:text-sm font-semibold text-slate-800 line-clamp-2 leading-snug group-hover:text-amber-800 transition-colors mb-1 min-h-[2.4em]"
+            title={product.name}
+          >
+            {product.name}
+          </Link>
+
+          {/* Seller Name */}
+          <p className="text-[11px] sm:text-xs text-slate-500 truncate mb-1.5">
+            {product.company?.name || 'Verified Seller'}
+          </p>
+
+          {/* Star Rating & Review Count */}
+          <div className="flex items-center gap-1.5 text-xs text-slate-600 mb-2">
+            <div className="flex items-center text-amber-500">
+              <Star className="w-3.5 h-3.5 fill-current text-amber-500" aria-hidden />
+            </div>
+            <span className="font-semibold text-slate-800 text-[11px] sm:text-xs">
+              {rating !== undefined ? rating.toFixed(1) : '4.2'}
+            </span>
+            <span className="text-slate-400 text-[11px]">
+              ({reviews !== undefined ? (reviews >= 1000 ? `${(reviews / 1000).toFixed(1)}k` : reviews) : '1.2k'})
+            </span>
+          </div>
+
+          {/* Price */}
+          <div className="flex items-baseline gap-2 mt-auto mb-3">
+            <span className="text-sm sm:text-base font-extrabold text-slate-900">
+              {formatInr(product.basePrice)}
+            </span>
+            {compareAt !== undefined && (
+              <span className="text-xs text-slate-400 line-through">
+                {formatInr(compareAt)}
               </span>
             )}
           </div>
 
-          {/* Wishlist Button */}
-          <div className="absolute top-3 right-3 z-10">
-            <WishlistButton productId={product._id} size="sm" />
-          </div>
-
-          {/* Quick Add Button on Hover */}
+          {/* Yellow "Add to Cart" Button */}
           <button
             type="button"
             onClick={handleQuickAdd}
             disabled={adding}
-            className="absolute bottom-3 left-3 right-3 z-10 inline-flex items-center justify-center gap-1.5 rounded-full bg-[#14122B] hover:bg-black text-white text-xs font-semibold py-2.5 px-4 shadow-xl opacity-0 translate-y-2 group-hover:opacity-100 group-hover:translate-y-0 transition-all duration-200 cursor-pointer disabled:opacity-60 hover:-translate-y-0.5"
+            className="w-full inline-flex items-center justify-center gap-1.5 py-1.5 sm:py-2 px-3 rounded-lg bg-[#ffd814] hover:bg-[#f7ca00] active:bg-[#f0b800] text-slate-900 text-xs sm:text-sm font-semibold shadow-sm transition-all duration-150 cursor-pointer disabled:opacity-60 active:scale-[0.98]"
           >
-            <Plus className="w-3.5 h-3.5" />
-            {adding ? 'Adding…' : 'Quick add'}
+            <ShoppingCart className="w-3.5 h-3.5" />
+            <span>{adding ? 'Adding...' : 'Add to Cart'}</span>
           </button>
         </div>
-
-        {/* Product Details Area */}
-        <div className="p-4 flex flex-col flex-1 gap-1.5">
-          <h3 className="text-sm font-bold text-[#14122B] font-display line-clamp-2 leading-snug group-hover:text-[#4F46FF] transition-colors duration-150">
-            {product.name}
-          </h3>
-
-          {rating !== undefined && (
-            <div className="flex items-center gap-1 text-xs text-surface-600">
-              <Star className="w-3.5 h-3.5 fill-warning-500 text-warning-500" aria-hidden />
-              <span className="font-bold text-[#14122B]">{rating.toFixed(1)}</span>
-              {reviews !== undefined && (
-                <span className="text-surface-400">({reviews})</span>
-              )}
-            </div>
-          )}
-
-          {/* Indigo price */}
-          <div className="flex items-baseline gap-2 mt-auto pt-2">
-            <p className="text-base sm:text-lg font-extrabold text-[#4F46FF] font-display">
-              {formatInr(product.basePrice)}
-            </p>
-            {compareAt !== undefined && (
-              <p className="text-xs text-surface-400 line-through">{formatInr(compareAt)}</p>
-            )}
-          </div>
-
-          {/* Seller with green verified tick */}
-          {product.company && (
-            <p className="flex items-center gap-1.5 text-xs text-surface-500 truncate pt-0.5">
-              <BadgeCheck className="w-3.5 h-3.5 text-emerald-600 shrink-0" aria-hidden />
-              <span className="truncate font-medium">{product.company.name}</span>
-            </p>
-          )}
-        </div>
-      </Link>
+      </div>
     </article>
   );
 }
 
 export function ProductCardSkeleton() {
   return (
-    <div className="bg-white rounded-[24px] sm:rounded-[28px] border border-[#E6E6F0] overflow-hidden shadow-card">
-      <div className="aspect-[4/5] bg-surface-200 animate-pulse" />
-      <div className="p-4 space-y-2.5">
-        <div className="h-4 w-5/6 bg-surface-200 animate-pulse rounded-full" />
-        <div className="h-4 w-1/2 bg-surface-200 animate-pulse rounded-full" />
-        <div className="h-5 w-24 bg-surface-200 animate-pulse rounded-full mt-3" />
+    <div className="bg-white rounded-xl border border-slate-200 p-3 sm:p-3.5 shadow-sm space-y-3">
+      <div className="aspect-square bg-slate-100 animate-pulse rounded-lg" />
+      <div className="space-y-2">
+        <div className="h-3.5 w-5/6 bg-slate-100 animate-pulse rounded" />
+        <div className="h-3 w-1/2 bg-slate-100 animate-pulse rounded" />
+        <div className="h-3 w-1/3 bg-slate-100 animate-pulse rounded" />
+        <div className="h-4 w-2/5 bg-slate-100 animate-pulse rounded" />
+        <div className="h-8 w-full bg-slate-200 animate-pulse rounded-lg mt-2" />
       </div>
     </div>
   );
