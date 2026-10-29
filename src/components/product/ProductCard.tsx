@@ -88,6 +88,15 @@ export function ProductCard({ product }: Props) {
               </span>
             </div>
           ) : null}
+                    {/* Top Rated Badge */}
+                    {rating !== undefined && rating >= 4.0 && reviews > 0 && (
+            <div className={`absolute left-2 z-10 pointer-events-none ${discount !== undefined && discount > 0 ? 'top-9' : 'top-2'}`}>
+              <span className="px-2 py-0.5 rounded text-[11px] font-bold bg-[#febd69] text-slate-900 shadow-sm uppercase tracking-wide flex items-center gap-1">
+                <Star className="w-2.5 h-2.5 fill-slate-900" />
+                Top Rated
+              </span>
+            </div>
+          )}
 
           {/* Wishlist Heart on Top-Right */}
           <div className="absolute top-2 right-2 z-10">
@@ -115,16 +124,16 @@ export function ProductCard({ product }: Props) {
             {product.company?.name || 'Verified Seller'}
           </p>
 
-          {/* Star Rating & Review Count */}
-          <div className="flex items-center gap-1.5 text-xs text-slate-600 mb-2">
+                  {/* Star Rating & Review Count */}
+                  <div className="flex items-center gap-1.5 text-xs text-slate-600 mb-2">
             <div className="flex items-center text-amber-500">
               <Star className="w-3.5 h-3.5 fill-current text-amber-500" aria-hidden />
             </div>
             <span className="font-semibold text-slate-800 text-[11px] sm:text-xs">
-              {rating !== undefined ? rating.toFixed(1) : '4.2'}
+              {(rating ?? 0).toFixed(1)}
             </span>
             <span className="text-slate-400 text-[11px]">
-              ({reviews !== undefined ? (reviews >= 1000 ? `${(reviews / 1000).toFixed(1)}k` : reviews) : '1.2k'})
+              ({reviews ?? 0})
             </span>
           </div>
 
