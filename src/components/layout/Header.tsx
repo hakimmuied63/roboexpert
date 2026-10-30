@@ -34,6 +34,7 @@ export function Header({ categories = [] }: Props) {
   const location = useLocation();
   const isStorefront = location.pathname.startsWith('/shop/');
   const [userMenuOpen, setUserMenuOpen] = useState(false);
+  const [categoriesOpen, setCategoriesOpen] = useState(false);
   const [navOpen, setNavOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchCategory, setSearchCategory] = useState('');
@@ -387,16 +388,42 @@ export function Header({ categories = [] }: Props) {
           {/* Secondary Sub-Navigation Bar */}
           {!isStorefront && (
       <div className="bg-[#232f3e] border-t border-slate-700/60">
-        <div className="max-w-7xl mx-auto px-4 flex items-center justify-between text-xs sm:text-sm h-10 overflow-x-auto scrollbar-hide">
+       <div className="max-w-7xl mx-auto px-4 flex items-center justify-between text-xs sm:text-sm h-10">
           <div className="flex items-center gap-4 sm:gap-6 shrink-0">
-            {/* All Categories Button */}
-            <Link
-              to="/search"
-              className="flex items-center gap-1.5 font-bold py-1 px-1.5 rounded hover:outline-1 hover:outline-white shrink-0"
+                      {/* All Categories Button & Dropdown */}
+                      <div 
+              className="relative shrink-0"
+              onMouseEnter={() => setCategoriesOpen(true)}
+              onMouseLeave={() => setCategoriesOpen(false)}
             >
-              <Menu className="w-4 h-4" />
-              <span>All Categories</span>
-            </Link>
+              <button
+                type="button"
+                onClick={() => setCategoriesOpen(!categoriesOpen)}
+                className="flex items-center gap-1.5 font-bold py-1 px-1.5 rounded hover:outline-1 hover:outline-white cursor-pointer"
+              >
+                <Menu className="w-4 h-4" />
+                <span>All Categories</span>
+              </button>
+
+              {/* Dropdown Menu */}
+              {categoriesOpen && (
+                                <div className="absolute left-0 top-full mt-1 w-64 bg-white text-slate-900 rounded-lg shadow-2xl border border-slate-200 py-2 z-[110]">
+                  <ul className="max-h-[70vh] overflow-y-auto">
+                    {categories.map((cat) => (
+                      <li key={cat._id}>
+                        <Link
+                          to={`/category/${cat.slug}`}
+                          onClick={() => setCategoriesOpen(false)}
+                          className="block px-4 py-2 text-sm hover:bg-slate-50 hover:text-amber-800 transition-colors"
+                        >
+                          {cat.name}
+                        </Link>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </div>
 
             <Link
               to="/search"
@@ -454,7 +481,7 @@ export function Header({ categories = [] }: Props) {
         </div>
       </div>
        )}
-       
+
       {/* Mobile Drawer Menu */}
       {navOpen && (
         <div className="lg:hidden border-t border-slate-700 bg-[#232f3e] text-white">

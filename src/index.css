@@ -109,13 +109,13 @@
   }
 
   a {
-    color: #4F46FF;
+    color: #49b4bb;
     text-decoration: none;
     transition: all 0.2s;
   }
 
   a:hover {
-    color: #4338CA;
+    color: #49b4bb;
   }
 
   input, textarea, select, button {

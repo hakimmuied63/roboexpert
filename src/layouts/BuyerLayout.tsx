@@ -10,7 +10,7 @@ export function BuyerLayout() {
 
   return (
     <div className="min-h-screen flex flex-col bg-[#eaeded] text-slate-900">
-      <div className="sticky top-0 z-40">
+           <div className="sticky top-0 z-[100]">
         <Header categories={categories} />
       </div>
       <main className="flex-1">
