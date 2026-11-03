@@ -1339,7 +1339,7 @@ export type BulkUploadRow = {
   color?: string;
   price: number;
   stock: number;
-  imageUrl?: string;
+  images?: string[];
 };
 
 export type BulkUploadSummary = {

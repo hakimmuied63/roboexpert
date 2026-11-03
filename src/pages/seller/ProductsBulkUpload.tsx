@@ -8,9 +8,10 @@ import {
   CheckCircle2,
   AlertCircle,
   X,
+  Image as ImageIcon,
 } from 'lucide-react';
 import { Button } from '../../components/ui';
-import { bulkCreateProducts, type BulkUploadRow } from '../../lib/api';
+import { bulkCreateProducts, uploadImage, type BulkUploadRow } from '../../lib/api';
 import toast from 'react-hot-toast';
 
 type ParsedRow = BulkUploadRow & { _rowNum: number };
@@ -34,6 +35,10 @@ export function ProductsBulkUpload() {
     };
     errors: RowError[];
   } | null>(null);
+
+  // Image mapping state: productName -> imageUrl
+  const [productImages, setProductImages] = useState<Record<string, string[]>>({});
+  const [uploadingProduct, setUploadingProduct] = useState<string | null>(null);
 
   // ---------- CSV Parsing ----------
 
@@ -67,6 +72,7 @@ export function ProductsBulkUpload() {
     setParsedRows([]);
     setParseErrors([]);
     setImportResult(null);
+    setProductImages({});
 
     try {
       const text = await selectedFile.text();
@@ -150,7 +156,8 @@ export function ProductsBulkUpload() {
           color: get('color') || undefined,
           price,
           stock,
-          imageUrl: get('imageurl') || undefined,
+          // We will override this with the uploaded image below
+          imageUrl: get('imageurl') || undefined, 
         });
       }
 
@@ -177,7 +184,38 @@ export function ProductsBulkUpload() {
     setParsedRows([]);
     setParseErrors([]);
     setImportResult(null);
+    setProductImages({});
     if (fileInputRef.current) fileInputRef.current.value = '';
+  };
+
+  // ---------- Image Upload per Product ----------
+
+  const handleImageUpload = async (productName: string, files: FileList) => {
+    const validFiles = Array.from(files).filter(f => f.type.startsWith('image/'));
+    if (validFiles.length === 0) {
+      toast.error('Please select image files');
+      return;
+    }
+
+    setUploadingProduct(productName);
+    const newUrls: string[] = [];
+
+    for (const file of validFiles) {
+      const res = await uploadImage(file, 'products');
+      if (res.ok && res.url) {
+        newUrls.push(res.url);
+      } else {
+        toast.error(`Failed to upload ${file.name}`);
+      }
+    }
+    
+    setUploadingProduct(null);
+
+    setProductImages(prev => ({ 
+      ...prev, 
+      [productName]: [...(prev[productName] || []), ...newUrls] 
+    }));
+    toast.success(`Added ${newUrls.length} image(s) for "${productName}"`);
   };
 
   const handleImport = async () => {
@@ -185,6 +223,7 @@ export function ProductsBulkUpload() {
 
     setImporting(true);
 
+    // Merge the uploaded images into the rows
     const rowsForApi: BulkUploadRow[] = parsedRows.map((r) => ({
       name: r.name,
       description: r.description,
@@ -195,7 +234,7 @@ export function ProductsBulkUpload() {
       color: r.color,
       price: r.price,
       stock: r.stock,
-      imageUrl: r.imageUrl,
+      images: productImages[r.name] || [],
     }));
 
     const result = await bulkCreateProducts(rowsForApi);
@@ -215,9 +254,9 @@ export function ProductsBulkUpload() {
     );
   };
 
-  // ---------- Preview: group rows for display ----------
-
-  const uniqueProducts = new Set(parsedRows.map((r) => r.name.toLowerCase())).size;
+  // Get unique product names so we can show the upload list
+  const uniqueProducts = Array.from(new Set(parsedRows.map((r) => r.name)));
+  const uniqueProductsCount = uniqueProducts.length;
 
   return (
     <div className="p-6 lg:p-8 max-w-4xl">
@@ -246,13 +285,10 @@ export function ProductsBulkUpload() {
             <p className="font-medium mb-2">How it works</p>
             <ol className="space-y-1 list-decimal list-inside text-blue-800">
               <li>Download the template CSV file below</li>
-              <li>Open it in Excel, Google Sheets, or Numbers</li>
-              <li>
-                Fill in your products. <strong>One row = one variant.</strong> If a product has
-                3 sizes, add 3 rows with the same product name.
-              </li>
+              <li>Fill in your products. <strong>One row = one variant.</strong></li>
               <li>Save the file as CSV</li>
-              <li>Upload it here</li>
+              <li>Upload the CSV here</li>
+              <li><strong>Upload images for each product</strong> in the list that appears</li>
             </ol>
           </div>
         </div>
@@ -298,7 +334,6 @@ export function ProductsBulkUpload() {
                 <p className="text-sm font-medium text-surface-900">{file.name}</p>
                 <p className="text-xs text-surface-500">
                   {parsedRows.length} valid row{parsedRows.length === 1 ? '' : 's'}
-                  {parseErrors.length > 0 && ` · ${parseErrors.length} parse error(s)`}
                 </p>
               </div>
             </div>
@@ -317,9 +352,7 @@ export function ProductsBulkUpload() {
               <div className="flex items-start gap-2">
                 <AlertCircle className="w-4 h-4 text-yellow-600 flex-shrink-0 mt-0.5" />
                 <div className="text-xs text-yellow-800">
-                  <p className="font-medium mb-1">
-                    Some rows had issues and won't be imported:
-                  </p>
+                  <p className="font-medium mb-1">Some rows had issues:</p>
                   <ul className="space-y-0.5 max-h-32 overflow-y-auto">
                     {parseErrors.map((err, i) => (
                       <li key={i}>• {err}</li>
@@ -330,58 +363,70 @@ export function ProductsBulkUpload() {
             </div>
           )}
 
-          {/* Preview table */}
-          {parsedRows.length > 0 && (
-            <div className="max-h-96 overflow-auto">
-              <table className="w-full text-sm">
-                <thead className="bg-surface-50 sticky top-0">
-                  <tr className="text-left text-xs font-medium text-surface-500 uppercase tracking-wider border-b border-surface-200">
-                    <th className="px-3 py-2">Row</th>
-                    <th className="px-3 py-2">Product</th>
-                    <th className="px-3 py-2">Category</th>
-                    <th className="px-3 py-2">SKU</th>
-                    <th className="px-3 py-2">Variant</th>
-                    <th className="px-3 py-2 text-right">Price</th>
-                    <th className="px-3 py-2 text-right">Stock</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-surface-100">
-                  {parsedRows.map((row, i) => (
-                    <tr key={i} className="hover:bg-surface-50">
-                      <td className="px-3 py-2 text-xs text-surface-400">
-                        {row._rowNum}
-                      </td>
-                      <td className="px-3 py-2 text-surface-900 font-medium truncate max-w-[180px]">
-                        {row.name}
-                      </td>
-                      <td className="px-3 py-2 text-surface-600">
-                        {row.category ?? '—'}
-                      </td>
-                      <td className="px-3 py-2 text-xs text-surface-600 font-mono">
-                        {row.sku}
-                      </td>
-                      <td className="px-3 py-2 text-surface-600">
-                        {[row.size, row.color].filter(Boolean).join(' / ') || '—'}
-                      </td>
-                      <td className="px-3 py-2 text-right text-surface-900">
-                        ₹{row.price.toLocaleString('en-IN')}
-                      </td>
-                      <td className="px-3 py-2 text-right text-surface-600">
-                        {row.stock}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+          {/* Image Upload for Unique Products */}
+          {uniqueProducts.length > 0 && (
+            <div className="p-4 border-b border-surface-100 bg-white">
+              <h3 className="text-sm font-bold text-surface-900 mb-3">Upload Images</h3>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {uniqueProducts.map((productName) => {
+  const images = productImages[productName] || [];
+  return (
+    <div key={productName} className="border border-surface-200 rounded-lg p-3 space-y-3">
+      <div className="flex items-center justify-between">
+        <p className="text-sm font-medium text-surface-900 truncate">{productName}</p>
+        <span className="text-xs text-surface-400">{images.length} image(s)</span>
+      </div>
+      
+      {images.length > 0 && (
+        <div className="flex gap-2 flex-wrap">
+          {images.map((url, idx) => (
+            <div key={idx} className="relative w-12 h-12">
+              <img src={url} alt="preview" className="w-full h-full object-cover rounded border border-surface-200" />
+              <button
+                type="button"
+                onClick={() => {
+                  setProductImages(prev => ({
+                    ...prev,
+                    [productName]: prev[productName].filter((_, i) => i !== idx)
+                  }));
+                }}
+                className="absolute -top-1.5 -right-1.5 bg-red-500 text-white rounded-full p-0.5"
+              >
+                <X className="w-3 h-3" />
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+
+      <label className="inline-flex items-center justify-center w-full py-2 border-2 border-dashed border-surface-300 rounded-lg cursor-pointer hover:bg-surface-50 transition-colors">
+        <ImageIcon className="w-4 h-4 text-surface-500 mr-2" />
+        <span className="text-sm text-surface-600">
+          {uploadingProduct === productName ? 'Uploading...' : 'Add Images'}
+        </span>
+        <input
+          type="file"
+          accept="image/*"
+          multiple
+          className="hidden"
+          onChange={(e) => {
+            if (e.target.files) handleImageUpload(productName, e.target.files);
+          }}
+        />
+      </label>
+    </div>
+  );
+})}
+              </div>
             </div>
           )}
 
           {/* Actions */}
-          <div className="flex items-center justify-between p-4 border-t border-surface-100 bg-surface-50">
+          <div className="flex items-center justify-between p-4 bg-surface-50">
             <p className="text-xs text-surface-500">
               This will create{' '}
               <span className="font-semibold text-surface-900">
-                {uniqueProducts} product{uniqueProducts === 1 ? '' : 's'}
+                {uniqueProductsCount} product{uniqueProductsCount === 1 ? '' : 's'}
               </span>{' '}
               with{' '}
               <span className="font-semibold text-surface-900">
