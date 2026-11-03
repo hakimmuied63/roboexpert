@@ -66,13 +66,20 @@ export function ProductDetail() {
   const availableStock = selectedVariant?.stock ?? 0;
   const canBuy = availableStock > 0;
 
-  // --- Color & Size Logic ---
-  const colors = Array.from(new Set(variants.map((v) => v.attributes.Color || 'Default')));
-  const selectedColor = selectedVariant?.attributes.Color || (colors.length > 0 ? colors[0] : null);
+    // --- Color & Size Logic (case-insensitive) ---
+  // Helper to safely extract attribute values regardless of casing
+  const getAttr = (attrs: any, key: string) => {
+    if (!attrs) return undefined;
+    const foundKey = Object.keys(attrs).find(k => k.toLowerCase() === key.toLowerCase());
+    return foundKey ? attrs[foundKey] : undefined;
+  };
+
+  const colors = Array.from(new Set(variants.map((v) => getAttr(v.attributes, 'color') || 'Default')));
+  const selectedColor = getAttr(selectedVariant?.attributes, 'color') || (colors.length > 0 ? colors[0] : null);
 
   const availableSizes = variants
-    .filter((v) => (v.attributes.Color || 'Default') === selectedColor)
-    .map((v) => v.attributes.Size)
+    .filter((v) => (getAttr(v.attributes, 'color') || 'Default') === selectedColor)
+    .map((v) => getAttr(v.attributes, 'size'))
     .filter(Boolean);
 
   const handleAddToCart = () => {
@@ -224,7 +231,7 @@ export function ProductDetail() {
                           type="button"
                           onClick={() => {
                             // Find the first variant of this color to auto-select it
-                            const firstVariant = variants.find(v => (v.attributes.Color || 'Default') === color);
+                            const firstVariant = variants.find(v => (getAttr(v.attributes, 'color') || 'Default') === color);
                             if (firstVariant) setSelectedVariantId(firstVariant._id);
                           }}
                           className={`px-4 py-2 text-sm rounded-lg border transition-colors ${
@@ -249,7 +256,7 @@ export function ProductDetail() {
                     {availableSizes.map((size) => {
                       // Find the specific variant ID for this Color + Size combo
                       const matchedVariant = variants.find(
-                        v => (v.attributes.Color || 'Default') === selectedColor && v.attributes.Size === size
+                        v => (getAttr(v.attributes, 'color') || 'Default') === selectedColor && getAttr(v.attributes, 'size') === size
                       );
                       const isSelected = selectedVariantId === matchedVariant?._id;
                       const outOfStock = (matchedVariant?.stock ?? 0) <= 0;

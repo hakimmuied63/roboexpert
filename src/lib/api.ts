@@ -1682,12 +1682,16 @@ export type ListReviewsResponse = {
 export const fetchProductReviews = async (
   productId: string,
   page: number = 1,
-  limit: number = 10
+  limit: number = 10,
+  variantId?: string
 ): Promise<ListReviewsResponse> => {
   try {
-    const res = await fetch(
-      `${API_BASE}/products/${productId}/reviews?page=${page}&limit=${limit}`
-    );
+    let url = `${API_BASE}/products/${productId}/reviews?page=${page}&limit=${limit}`;
+    if (variantId) {
+      url += `&variantId=${variantId}`;
+    }
+
+    const res = await fetch(url);
     if (!res.ok) {
       return {
         ok: false,

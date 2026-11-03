@@ -56,7 +56,7 @@ export function ReviewsSection({ productId, variantId, ratingAverage = 0, rating
 
   const loadReviews = async (p: number) => {
     setLoadingReviews(true);
-    const data = await fetchProductReviews(productId, p, 10);
+    const data = await fetchProductReviews(productId, p, 10, variantId);
     if (data.ok) {
       setReviews(data.reviews);
       setTotalPages(data.pagination.pages);
@@ -68,7 +68,7 @@ export function ReviewsSection({ productId, variantId, ratingAverage = 0, rating
     loadReviews(1);
     setPage(1);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [productId]);
+  }, [productId, variantId]);
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files ?? []);

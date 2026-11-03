@@ -89,7 +89,7 @@ export function ProductCard({ product }: Props) {
             </div>
           ) : null}
                     {/* Top Rated Badge */}
-                    {rating !== undefined && rating >= 4.0 && reviews > 0 && (
+                    {rating !== undefined && rating >= 4.0 && (reviews ?? 0) > 0 && (
             <div className={`absolute left-2 z-10 pointer-events-none ${discount !== undefined && discount > 0 ? 'top-9' : 'top-2'}`}>
               <span className="px-2 py-0.5 rounded text-[11px] font-bold bg-[#febd69] text-slate-900 shadow-sm uppercase tracking-wide flex items-center gap-1">
                 <Star className="w-2.5 h-2.5 fill-slate-900" />
