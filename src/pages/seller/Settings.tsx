@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
-import { Copy, Check, Store, ExternalLink } from 'lucide-react';
+import { Copy, Check, Store, ExternalLink, Upload, Loader2, X } from 'lucide-react';
 import { Button, Input, LoadingSpinner } from '../../components/ui';
-import { fetchMyCompany, updateMyCompany, type MyCompany } from '../../lib/api';
+import { fetchMyCompany, updateMyCompany, uploadImage, type MyCompany } from '../../lib/api';
 import toast from 'react-hot-toast';
 
 export function SellerSettings() {
@@ -9,6 +9,7 @@ export function SellerSettings() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [uploadingLogo, setUploadingLogo] = useState(false);
 
   const [form, setForm] = useState({
     name: '',
@@ -62,6 +63,32 @@ export function SellerSettings() {
     } catch {
       toast.error('Could not copy');
     }
+  };
+
+  const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      toast.error('Please select an image file');
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error('Image must be under 5 MB');
+      return;
+    }
+
+    setUploadingLogo(true);
+    const res = await uploadImage(file, 'sellers');
+    setUploadingLogo(false);
+
+    if (!res.ok || !res.url) {
+      toast.error(res.error || 'Failed to upload logo');
+      return;
+    }
+
+    setForm({ ...form, logoUrl: res.url });
+    toast.success('Logo uploaded! Click "Save Changes" to apply.');
   };
 
   const validate = () => {
@@ -187,12 +214,56 @@ export function SellerSettings() {
             placeholder="e.g., Muied Enterprises"
           />
 
-          <Input
-            label="Logo URL (optional)"
-            value={form.logoUrl}
-            onChange={(e) => setForm({ ...form, logoUrl: e.target.value })}
-            placeholder="https://..."
-          />
+          {/* Logo Upload */}
+          <div>
+            <label className="block text-sm font-medium text-surface-700 mb-1.5">
+              Store Logo (optional)
+            </label>
+            
+            {form.logoUrl ? (
+              <div className="flex items-center gap-4 p-3 bg-surface-50 border border-surface-200 rounded-lg">
+                <img
+                  src={form.logoUrl}
+                  alt="Store Logo"
+                  className="w-16 h-16 object-contain rounded-lg border border-surface-200 bg-white"
+                />
+                <div className="flex-1">
+                  <p className="text-sm text-surface-700 font-medium">Logo uploaded</p>
+                  <button
+                    type="button"
+                    onClick={() => setForm({ ...form, logoUrl: '' })}
+                    className="text-xs text-danger-600 hover:underline mt-0.5"
+                  >
+                    Remove and upload new
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <label className="flex items-center justify-center gap-2 w-full py-4 border-2 border-dashed border-surface-300 rounded-lg cursor-pointer hover:border-primary-400 hover:bg-primary-50/50 transition-colors">
+                {uploadingLogo ? (
+                  <>
+                    <Loader2 className="w-5 h-5 text-primary-600 animate-spin" />
+                    <span className="text-sm text-surface-600">Uploading...</span>
+                  </>
+                ) : (
+                  <>
+                    <Upload className="w-5 h-5 text-surface-500" />
+                    <span className="text-sm text-surface-600 font-medium">Upload Logo</span>
+                  </>
+                )}
+                <input
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={handleLogoUpload}
+                  disabled={uploadingLogo}
+                />
+              </label>
+            )}
+            <p className="mt-1.5 text-xs text-surface-400">
+              PNG, JPG, or WebP. Max 5 MB. This will appear in your storefront header.
+            </p>
+          </div>
         </div>
 
         {/* Contact */}

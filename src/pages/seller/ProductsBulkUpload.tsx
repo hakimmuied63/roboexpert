@@ -156,8 +156,6 @@ export function ProductsBulkUpload() {
           color: get('color') || undefined,
           price,
           stock,
-          // We will override this with the uploaded image below
-          imageUrl: get('imageurl') || undefined, 
         });
       }
 
