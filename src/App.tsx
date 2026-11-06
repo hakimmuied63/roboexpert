@@ -26,6 +26,7 @@ import { Cart } from './pages/buyer/Cart';
 import { Checkout } from './pages/buyer/Checkout';
 import { Wishlist } from './pages/buyer/Wishlist';
 import { TrackOrder } from './pages/buyer/TrackOrder';
+import { BuyerOrders } from './pages/buyer/Orders';
 import { SellerProfile } from './pages/buyer/SellerProfile';
 import { StorefrontPage } from './pages/buyer/StorefrontPage';
 
@@ -90,6 +91,7 @@ function App() {
                 <Route path="cart" element={<Cart />} />
                 <Route path="wishlist" element={<Wishlist />} />
                 <Route path="track-order" element={<TrackOrder />} />
+                <Route path="orders" element={<BuyerOrders />} />
                 <Route path="seller-profile/:id" element={<SellerProfile />} />
                 <Route path="shop/:companyId" element={<StorefrontPage />} />
                 <Route path="checkout" element={<Checkout />} />

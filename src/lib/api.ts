@@ -1955,3 +1955,46 @@ export const fetchCompanyById = async (id: string): Promise<any> => {
     return null;
   }
 };
+export type BuyerOrder = {
+  _id: string;
+  orderNumber: string;
+  buyer: { name: string; email: string; phone: string };
+  shippingAddress: any;
+  subtotal: number;
+  shippingFee: number;
+  packagingFee: number;
+  total: number;
+  status: string;
+  paymentMethod: string;
+  paymentStatus: string;
+  items: Array<{
+    _id: string;
+    productId: string;
+    variantId: string;
+    quantity: number;
+    unitPrice: number;
+    lineTotal: number;
+    productSnapshot: {
+      name: string;
+      image?: string;
+      variantAttributes: Record<string, string>;
+      sku: string;
+    };
+  }>;
+  createdAt: string;
+  cancellationReason?: string | null;
+  returnStatus?: string | null;
+  refundStatus?: string | null;
+};
+
+export const fetchBuyerOrders = async (email: string): Promise<BuyerOrder[]> => {
+  try {
+    const res = await fetch(`${API_BASE}/orders/buyer/all?email=${encodeURIComponent(email)}`);
+    if (!res.ok) return [];
+    const data = await res.json();
+    return data.orders ?? [];
+  } catch (error) {
+    console.error('fetchBuyerOrders error:', error);
+    return [];
+  }
+};
